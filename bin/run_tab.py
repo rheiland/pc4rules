@@ -1,9 +1,8 @@
 """
 Authors:
 Randy Heiland (heiland@iu.edu)
-Adam Morrow, Michael Siler, Grant Waldrow, Drew Willis, Kim Crevecoeur
 Dr. Paul Macklin (macklinp@iu.edu)
-
+- also rf. Credits.md
 """
 
 import sys
@@ -90,11 +89,11 @@ class RunModel(QWidget):
         hbox.addWidget(QLabel("Exec:"))
         self.exec_name = QLineEdit()
         if self.nanohub_flag:
-            self.exec_name.setText('myproj')
-            self.exec_name.setEnabled(False)
+            self.exec_name.setText('rules')
+            # self.exec_name.setEnabled(False)
         else:
             # self.exec_name.setText('../myproj')
-            self.exec_name.setText('template')
+            self.exec_name.setText('rules')
         hbox.addWidget(self.exec_name)
 
         hbox.addWidget(QLabel("Config:"))

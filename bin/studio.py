@@ -1,7 +1,6 @@
 """
 Authors:
 Randy Heiland (heiland@iu.edu)
-Adam Morrow, Michael Siler, Grant Waldrow, Drew Willis, Kim Crevecoeur
 Dr. Paul Macklin (macklinp@iu.edu)
 
 --- Versions ---
@@ -94,26 +93,7 @@ class PhysiCellXMLCreator(QWidget):
         # self.file_menu.insertAction("Open")
         # self.menubar.addMenu(self.file_menu)
 
-        # GUI tabs
-
-        # By default, let's startup the app with a default of template2D (a copy)
-        # self.new_model_cb()  # default on startup
-        # read_file = "../data/subcellular_flat.xml"
-        # read_file = "../data/cancer_biorobots_flat.xml"
-        # read_file = "../data/pred_prey_flat.xml"
-
-        # model_name = "pred_prey_flat"
-        # model_name = "cancer_biorobots_flat"
-        # model_name = "test1"
-        # model_name = "test-gui"
-        # model_name = "covid19_v5_flat"
-        # model_name = "template"
-        # model_name = "biorobots_flat"
-        # model_name = "PhysiCell_settings"
-        # model_name = "biorobots_flat"
-        model_name = "template"
-        # model_name = "randy_test"  #rwh
-        # read_file = "data/" + model_name + ".xml"
+        model_name = "rules_model1"
 
         # then what??
         # binDirectory = os.path.realpath(os.path.abspath(__file__))
@@ -185,11 +165,13 @@ class PhysiCellXMLCreator(QWidget):
 
         # self.tab2.tree.setCurrentItem(QTreeWidgetItem,0)  # item
 
-        self.celldef_tab = CellDef()
+        self.dark_mode = False
+        self.celldef_tab = CellDef(self.dark_mode)
         self.celldef_tab.xml_root = self.xml_root
         cd_name = self.celldef_tab.first_cell_def_name()
         print("studio.py: cd_name=",cd_name)
-        populate_tree_cell_defs(self.celldef_tab)
+        self.skip_validate = False
+        populate_tree_cell_defs(self.celldef_tab, self.skip_validate)
         # self.celldef_tab.populate_tree()
         self.celldef_tab.fill_substrates_comboboxes()
         self.celldef_tab.fill_celltypes_comboboxes()
@@ -202,7 +184,7 @@ class PhysiCellXMLCreator(QWidget):
         # self.cell_customdata_tab.fill_gui(self.celldef_tab)
         # self.celldef_tab.fill_custom_data_tab()
         
-        self.user_params_tab = UserParams()
+        self.user_params_tab = UserParams(self.dark_mode)
         self.user_params_tab.xml_root = self.xml_root
         self.user_params_tab.fill_gui()
 
@@ -218,7 +200,9 @@ class PhysiCellXMLCreator(QWidget):
 
         self.tabWidget = QTabWidget()
 
-        self.run_tab = RunModel(self.nanohub_flag, self.tabWidget, self.download_menu)
+        self.download_menu = None
+        self.rules_flag = True
+        self.run_tab = RunModel(self.nanohub_flag, self.tabWidget, self.rules_flag, self.download_menu)
         self.homedir = os.getcwd()
         print("studio.py: self.homedir = ",self.homedir)
         self.run_tab.homedir = self.homedir
@@ -248,7 +232,9 @@ class PhysiCellXMLCreator(QWidget):
         self.tabWidget.addTab(self.celldef_tab,"Cell Types")
         # self.tabWidget.addTab(self.cell_customdata_tab,"Cell Custom Data")
         self.tabWidget.addTab(self.user_params_tab,"User Params")
+        self.tabWidget.addTab(self.rules_tab,"Rules")
         self.tabWidget.addTab(self.run_tab,"Run")
+
         if show_vis_flag:
             print("studio.py: creating vis_tab (Plot tab) and legend_tab")
             self.vis_tab = Vis(self.nanohub_flag)
@@ -258,10 +244,8 @@ class PhysiCellXMLCreator(QWidget):
             # self.vis_tab.xml_root = self.xml_root
             self.tabWidget.addTab(self.vis_tab,"Plot")
             # self.tabWidget.setTabEnabled(5, False)
-            self.enablePlotTab(False)
 
             self.tabWidget.addTab(self.legend_tab,"Legend")
-            self.enableLegendTab(False)
 
             self.run_tab.vis_tab = self.vis_tab
             self.run_tab.legend_tab = self.legend_tab
@@ -271,7 +255,6 @@ class PhysiCellXMLCreator(QWidget):
             self.vis_tab.init_plot_range(self.config_tab)
             self.vis_tab.show_edge = False
 
-        self.tabWidget.addTab(self.rules_tab,"Rules")
 
         vlayout.addWidget(self.tabWidget)
         # self.addTab(self.sbml_tab,"SBML")
@@ -309,17 +292,17 @@ class PhysiCellXMLCreator(QWidget):
             self.download_menu = None
 
         #-----
-        model_menu = menubar.addMenu('&Model')
+        # model_menu = menubar.addMenu('&Model')
 
-        # open_act = QtGui.QAction('Open', self, checkable=True)
-        # open_act = QtGui.QAction('Open', self)
-        # open_act.triggered.connect(self.open_as_cb)
-        # file_menu.addAction("New (template)", self.new_model_cb, QtGui.QKeySequence('Ctrl+n'))
-        model_menu.addAction("template", self.template_cb)
-        model_menu.addAction("biorobots", self.biorobots_cb)
-        model_menu.addAction("celltypes3", self.celltypes3_cb)
-        model_menu.addAction("pred_prey_farmer", self.pred_prey_cb)
-        model_menu.addAction("interactions", self.interactions_cb)
+        # # open_act = QtGui.QAction('Open', self, checkable=True)
+        # # open_act = QtGui.QAction('Open', self)
+        # # open_act.triggered.connect(self.open_as_cb)
+        # # file_menu.addAction("New (template)", self.new_model_cb, QtGui.QKeySequence('Ctrl+n'))
+        # model_menu.addAction("template", self.template_cb)
+        # model_menu.addAction("biorobots", self.biorobots_cb)
+        # model_menu.addAction("celltypes3", self.celltypes3_cb)
+        # model_menu.addAction("pred_prey_farmer", self.pred_prey_cb)
+        # model_menu.addAction("interactions", self.interactions_cb)
 
         #-----
         view_menu = menubar.addMenu('&View')
@@ -520,14 +503,14 @@ class PhysiCellXMLCreator(QWidget):
         self.vis_tab.init_plot_range(self.config_tab)
         self.vis_tab.reset_model()
         # self.vis_tab.setEnabled(False)
-        self.enablePlotTab(False)
-        self.enableLegendTab(False)
+        self.enablePlotTab(True)
+
+        self.enableLegendTab(True)
         self.tabWidget.setCurrentIndex(0)  # Config (default)
 
 
     def show_sample_model(self):
         print("studio.py: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~show_sample_model(): self.config_file = ", self.config_file)
-        # self.config_file = "config_samples/biorobots.xml"
         self.tree = ET.parse(self.config_file)
         self.run_tab.tree = self.tree
         # self.xml_root = self.tree.getroot()
@@ -659,156 +642,12 @@ class PhysiCellXMLCreator(QWidget):
 
         self.show_sample_model()
         if self.nanohub_flag:
-            self.run_tab.exec_name.setText('template')
+            self.run_tab.exec_name.setText('rules')
         else:
-            self.run_tab.exec_name.setText('../template')
+            self.run_tab.exec_name.setText('../rules')
         self.vis_tab.show_edge = False   # no longer used?
         self.vis_tab.bgcolor = [1,1,1,1]
 
-
-    def biorobots_cb(self):
-        print("\n\n\n================ copy/load sample ======================================")
-        os.chdir(self.homedir)
-        name = "biorobots_flat"
-        # sample_file = Path("data", name + ".xml")
-        sample_file = Path(self.absolute_data_dir, name + ".xml")
-        copy_file = "copy_" + name + ".xml"
-        shutil.copy(sample_file, copy_file)
-
-        # self.add_new_model(copy_file, True)
-        # self.config_file = "config_samples/" + name + ".xml"
-        self.config_file = copy_file
-        # self.show_sample_model()
-        # self.run_tab.exec_name.setText('../biorobots')
-
-        try:
-            print("biorobots_cb():------------- copying ",sample_file," to ",copy_file)
-            shutil.copy(sample_file, copy_file)
-        except:
-            print("biorobots_cb(): Unable to copy file(1).")
-            sys.exit(1)
-
-        try:
-            print("biorobots_cb():------------- copying ",sample_file," to config.xml")
-            shutil.copy(sample_file, "config.xml")
-        except:
-            print("biorobots_cb(): Unable to copy file(2).")
-            sys.exit(1)
-
-        self.add_new_model(copy_file, True)
-        self.config_file = copy_file
-        print("biorobots_cb:   self.config_file = ",self.config_file)
-
-        self.show_sample_model()
-        if self.nanohub_flag:
-            self.run_tab.exec_name.setText('biorobots')
-        else:
-            self.run_tab.exec_name.setText('../biorobots')
-        self.vis_tab.show_edge = False
-        self.vis_tab.bgcolor = [1,1,1,1]
-
-
-    def celltypes3_cb(self):
-        print("\n\n\n================ copy/load sample ======================================")
-        os.chdir(self.homedir)
-        # name = "celltypes3_flat-with-default-celldef"
-        name = "celltypes3_flat"
-        # sample_file = Path("data", name + ".xml")
-        sample_file = Path(self.absolute_data_dir, name + ".xml")
-        copy_file = "copy_" + name + ".xml"
-        try:
-            print("celltypes3_cb():------------- copying ",sample_file," to ",copy_file)
-            shutil.copy(sample_file, copy_file)
-        except:
-            print("celltypes3_cb(): Unable to copy file(1).")
-            sys.exit(1)
-
-        try:
-            print("celltypes3_cb():------------- copying ",sample_file," to config.xml")
-            shutil.copy(sample_file, "config.xml")
-        except:
-            print("celltypes3_cb(): Unable to copy file(2).")
-            sys.exit(1)
-
-        self.add_new_model(copy_file, True)
-        self.config_file = copy_file
-        print("celltypes3_cb:   self.config_file = ",self.config_file)
-
-        self.show_sample_model()
-        if self.nanohub_flag:
-            self.run_tab.exec_name.setText('celltypes3')
-        else:
-            self.run_tab.exec_name.setText('../celltypes3')
-        self.vis_tab.show_edge = True
-        self.vis_tab.bgcolor = [0,0,0,1]
-
-
-    def pred_prey_cb(self):
-        os.chdir(self.homedir)
-        name = "pred_prey_flat"
-        # sample_file = Path("data", name + ".xml")
-        sample_file = Path(self.absolute_data_dir, name + ".xml")
-        copy_file = "copy_" + name + ".xml"
-        try:
-            print("pred_prey_cb():------------- copying ",sample_file," to ",copy_file)
-            shutil.copy(sample_file, copy_file)
-        except:
-            print("pred_prey_cb(): Unable to copy file(1).")
-            sys.exit(1)
-
-        try:
-            print("pred_prey_cb():------------- copying ",sample_file," to config.xml")
-            shutil.copy(sample_file, "config.xml")
-        except:
-            print("pred_prey_cb(): Unable to copy file(2).")
-            sys.exit(1)
-
-        self.add_new_model(copy_file, True)
-        self.config_file = copy_file
-        print("pred_prey_cb:   self.config_file = ",self.config_file)
-
-        self.show_sample_model()
-        if self.nanohub_flag:
-            self.run_tab.exec_name.setText('pred_prey')
-        else:
-            self.run_tab.exec_name.setText('../pred_prey')
-        self.vis_tab.show_edge = True
-        self.vis_tab.bgcolor = [1,1,1,1]
-        # self.vis_tab.reset_model()
-
-
-    def interactions_cb(self):
-        os.chdir(self.homedir)
-        name = "interactions"
-        # sample_file = Path("data", name + ".xml")
-        sample_file = Path(self.absolute_data_dir, name + ".xml")
-        copy_file = "copy_" + name + ".xml"
-        try:
-            print("interactions_cb():------------- copying ",sample_file," to ",copy_file)
-            shutil.copy(sample_file, copy_file)
-        except:
-            print("interactions_cb(): Unable to copy file(1).")
-            sys.exit(1)
-
-        try:
-            print("interactions_cb():------------- copying ",sample_file," to config.xml")
-            shutil.copy(sample_file, "config.xml")
-        except:
-            print("interactions_cb(): Unable to copy file(2).")
-            sys.exit(1)
-
-        self.add_new_model(copy_file, True)
-        self.config_file = copy_file
-        print("interactions_cb:   self.config_file = ",self.config_file)
-
-        self.show_sample_model()
-        if self.nanohub_flag:
-            self.run_tab.exec_name.setText('interactions')
-        else:
-            self.run_tab.exec_name.setText('../interactions')
-        self.vis_tab.show_edge = True
-        self.vis_tab.bgcolor = [1,1,1,1]
-        # self.vis_tab.reset_model()
 
 def main():
     inputfile = ''

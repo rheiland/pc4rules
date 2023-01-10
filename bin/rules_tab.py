@@ -1,8 +1,8 @@
 """
 Authors:
 Randy Heiland (heiland@iu.edu)
-Adam Morrow, Grant Waldrow, Drew Willis, Kim Crevecoeur
 Dr. Paul Macklin (macklinp@iu.edu)
+- also rf. Credits.md
 """
 
 import sys
