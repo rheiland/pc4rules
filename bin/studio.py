@@ -20,9 +20,10 @@ from xml.dom import minidom
 
 # from matplotlib.colors import TwoSlopeNorm
 
-from PyQt5 import QtCore, QtGui
+# from PyQt5 import QtCore   # , QtGui
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import QProcess
+from PyQt5.QtGui import QPalette, QColor, QIcon, QFont
 
 from about_tab import About
 from config_tab import Config
@@ -80,6 +81,10 @@ class PhysiCellXMLCreator(QWidget):
             vlayout.addWidget(QHLine(False))
         # self.setWindowIcon(self.style().standardIcon(getattr(QStyle, 'SP_DialogNoButton')))
         # self.setWindowIcon(QtGui.QIcon('physicell_logo_25pct.png'))
+        icon_path = os.path.join(os.path.dirname(sys.modules[__name__].__file__), 'physicell_logo_200px.png')
+        print("icon_path= ",icon_path)
+        self.setWindowIcon(QIcon(icon_path))
+
         # self.grid = QGridLayout()
         # lay.addLayout(self.grid)
         self.setLayout(vlayout)
@@ -558,11 +563,14 @@ def main():
     # print("show_vis_tab = ",show_vis_tab)
     # sys.exit()
 
-    app = QApplication(sys.argv)
+    studio_app = QApplication(sys.argv)
+    icon_path = os.path.join(os.path.dirname(sys.modules[__name__].__file__), 'physicell_logo_200px.png')
+    studio_app.setWindowIcon(QIcon(icon_path))
+
     ex = PhysiCellXMLCreator(show_vis_tab)
     # ex.setGeometry(100,100, 800,600)
     ex.show()
-    sys.exit(app.exec_())
+    sys.exit(studio_app.exec_())
 	
 if __name__ == '__main__':
     main()
