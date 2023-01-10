@@ -373,11 +373,13 @@ class Rules(QWidget):
         return
 
     def fill_gui(self):
-        logging.debug(f'\n\n------------\nrules_tab.py: fill_gui():')
+        # logging.debug(f'\n\n------------\nrules_tab.py: fill_gui():')
+        print(f'\n\n------------\nrules_tab.py: fill_gui():')
 
         # print("rules_tab.py: fill_gui(): self.celldef_tab.param_d.keys()= ",self.celldef_tab.param_d.keys())
         for key in self.celldef_tab.param_d.keys():
-            logging.debug(f'cell type ---> {key}')
+            # logging.debug(f'cell type ---> {key}')
+            print(f'cell type ---> {key}')
             self.celltype_dropdown.addItem(key)
             # self.signal_dropdown.addItem(key)
             # break
@@ -386,7 +388,8 @@ class Rules(QWidget):
         # print("rules_tab.py: fill_gui(): self.microenv_tab.param_d.keys()= ",self.microenv_tab.param_d.keys())
         substrates = []
         for key in self.microenv_tab.param_d.keys():
-            logging.debug(f'substrate type ---> {key}')
+            # logging.debug(f'substrate type ---> {key}')
+            print(f'substrate type ---> {key}')
             if key == 'gradients' or key == 'track_in_agents':
                 pass
             else:
@@ -457,7 +460,7 @@ class Rules(QWidget):
     # </cell_rules>      
     # </cell_definitions>
         uep = self.xml_root.find(".//cell_definitions//cell_rules")
-        logging.debug(f'rules_tab.py: fill_gui(): <cell_rules> = {uep}')
+        # logging.debug(f'rules_tab.py: fill_gui(): <cell_rules> = {uep}')
         print(f'rules_tab.py: fill_gui(): <cell_rules> =  {uep}')
         if uep:
             folder_name = self.xml_root.find(".//cell_definitions//cell_rules//folder").text

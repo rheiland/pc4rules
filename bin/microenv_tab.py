@@ -766,7 +766,7 @@ class SubstrateDef(QWidget):
 # -->
 #  		</variable>
     def populate_tree(self):
-        print("=======================  microenv populate_tree  ======================= ")
+        # print("=======================  microenv populate_tree  ======================= ")
         uep = self.xml_root.find(".//microenvironment_setup")
         if uep:
             # self.substrate.clear()
@@ -862,10 +862,10 @@ class SubstrateDef(QWidget):
                     if options_path:
                         # self.dirichlet_options_exist = True
                         for bv in options_path:
-                            print("bv = ",bv)
+                            # print("bv = ",bv)
                             if "xmin" in bv.attrib['ID'].lower():
                                 self.param_d[substrate_name]["dirichlet_xmin"] = bv.text
-                                print("   -------- ",substrate_name, ":  dirichlet_xmin = ",bv.text)
+                                # print("   -------- ",substrate_name, ":  dirichlet_xmin = ",bv.text)
 
                                 # BEWARE: doing a 'setText' here will invoke the callback associated with
                                 # the widget (e.g., self.dirichlet_xmin.textChanged.connect(self.dirichlet_xmin_changed))
@@ -921,7 +921,7 @@ class SubstrateDef(QWidget):
                     # self.gradients.setChecked(False)
                     # self.track_in_agents.setChecked(False)
                     for opt in var:
-                        print("------- options: ",opt)
+                        # print("------- options: ",opt)
                         if "calculate_gradients" in opt.tag:
                             if "true" in opt.text.lower():
                                 # self.gradients.setChecked(True)
@@ -957,7 +957,7 @@ class SubstrateDef(QWidget):
         self.tree.setCurrentItem(self.tree.topLevelItem(0))  # select the top (0th) item
         self.tree_item_clicked_cb(self.tree.topLevelItem(0), 0)  # and invoke its callback to fill widget values
 
-        print("\n\n=======================  leaving microenv populate_tree  ======================= ")
+        # print("\n\n=======================  leaving microenv populate_tree  ======================= ")
         # for k in self.param_d.keys():
         #     print(" ===>>> ",k, " : ", self.param_d[k])
 
@@ -1059,7 +1059,7 @@ class SubstrateDef(QWidget):
                 self.iterate_tree(item, child_count)
                 
     def fill_xml(self):
-        print("----------- microenv_tab.py: fill_xml(): ----------")
+        # print("----------- microenv_tab.py: fill_xml(): ----------")
         uep = self.xml_root.find('.//microenvironment_setup') # guaranteed to exist since we start with a valid model
         vp = []   # pointers to <variable> nodes
         if uep:
@@ -1072,9 +1072,9 @@ class SubstrateDef(QWidget):
         # Obtain a list of all substrates in self.tree (QTreeWidget()). Used below.
         substrates_in_tree = []
         num_subs = self.tree.invisibleRootItem().childCount()  # rwh: get number of items in tree
-        print('num subtrates = ',num_subs)
+        # print('num subtrates = ',num_subs)
         self.iterate_tree(self.tree.invisibleRootItem(), num_subs, substrates_in_tree)
-        print("substrates_in_tree =",substrates_in_tree)
+        # print("substrates_in_tree =",substrates_in_tree)
 
         uep = self.xml_root.find('.//microenvironment_setup')
         indent1 = '\n'
@@ -1084,9 +1084,9 @@ class SubstrateDef(QWidget):
 
         idx = 0
         for substrate in self.param_d.keys():
-            print('key in param_d.keys() = ',substrate)
+            # print('key in param_d.keys() = ',substrate)
             if substrate in substrates_in_tree:
-                print("matched! ",substrate)
+                # print("matched! ",substrate)
 	# 	<variable name="glue" units="dimensionless" ID="1">
 	# 		<physical_parameter_set>
 	# 			<diffusion_coefficient units="micron^2/min">422.0</diffusion_coefficient>

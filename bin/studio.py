@@ -188,15 +188,10 @@ class PhysiCellXMLCreator(QWidget):
         self.user_params_tab.xml_root = self.xml_root
         self.user_params_tab.fill_gui()
 
-
-        self.rules_tab = Rules(self.absolute_doc_dir, self.nanohub_flag)
-
-        # self.sbml_tab = SBMLParams()
-        # self.sbml_tab.xml_root = self.xml_root
-        # self.sbml_tab.fill_gui()
-
-
-        # self.save_as_cb()
+        # self.rules_tab = Rules(self.absolute_doc_dir, self.nanohub_flag)
+        self.rules_tab = Rules(self.microenv_tab, self.celldef_tab)
+        self.rules_tab.xml_root = self.xml_root
+        self.rules_tab.fill_gui()
 
         self.tabWidget = QTabWidget()
 
@@ -266,6 +261,9 @@ class PhysiCellXMLCreator(QWidget):
         else:
             self.tabWidget.setCurrentIndex(0)  # About
 
+        # self.reset_xml_root()
+
+    #-----------------------------------------
     def enablePlotTab(self, bval):
         # self.tabWidget.setTabEnabled(5, bval)
         self.tabWidget.setTabEnabled(6, bval)   # tab index = 6 if About tab is defined
@@ -391,71 +389,6 @@ class PhysiCellXMLCreator(QWidget):
                 self.p.start("exportfile mcds.zip")
         return
 
-    #-----------------------------------------------------------------
-    def add_new_model(self, name, read_only):
-        # does it already exist? If so, return
-        # if name in self.model.keys():
-        #     return
-        # self.model[name] = read_only
-        # self.num_models += 1
-        # print("add_new_model(): self.model (dict)= ",self.model)
-
-        # models_menu_act = QAction(name, self)
-        # self.models_menu.addAction(models_menu_act)
-        # models_menu_act.triggered.connect(self.select_current_model_cb)
-
-        self.run_tab.cancel_model_cb()  # if a sim is already running, cancel it
-
-        print("add_new_model: title suffix= ",name)
-        self.setWindowTitle(self.title_prefix + name)
-
-        #---------- rwh?
-        print("\n\n ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-        # print("add_new_model(): self.tree = ET.parse(xml_file) for ",self.config_file)
-        print("add_new_model(): self.tree = ET.parse(xml_file) for ",name)
-        # with open(self.config_file, 'r') as xml_file:
-        with open(name, 'r') as xml_file:
-            self.tree = ET.parse(xml_file)
-        # tree = ET.parse(read_file)
-        # self.tree = ET.parse(read_file)
-        self.xml_root = self.tree.getroot()
-
-        # self.num_models = 0
-        # self.model = {}  # key: name, value:[read-only, tree]
-
-        #-------  Re-populate the GUI with the new model's params -------
-        # self.config_tab = Config(self.nanohub_flag)
-        self.config_tab.xml_root = self.xml_root
-        self.config_tab.fill_gui()
-
-        # self.microenv_tab = SubstrateDef()
-        self.microenv_tab.xml_root = self.xml_root
-        substrate_name = self.microenv_tab.first_substrate_name()
-        print("studio.py: substrate_name=",substrate_name)
-        self.microenv_tab.populate_tree()  # rwh: both fill_gui and populate_tree??
-
-        # self.tab2.tree.setCurrentItem(QTreeWidgetItem,0)  # item
-
-        # self.celldef_tab = CellDef()
-        self.celldef_tab.xml_root = self.xml_root
-        cd_name = self.celldef_tab.first_cell_def_name()
-        print("studio.py: cd_name=",cd_name)
-        # self.celldef_tab.populate_tree()
-        populate_tree_cell_defs(self.celldef_tab)
-        self.celldef_tab.fill_substrates_comboboxes()
-        # self.vis_tab.substrates_cbox_changed_cb(2)
-        self.microenv_tab.celldef_tab = self.celldef_tab
-
-        # self.cell_customdata_tab = CellCustomData()
-        # self.cell_customdata_tab.xml_root = self.xml_root
-        # self.cell_customdata_tab.celldef_tab = self.celldef_tab
-        # self.cell_customdata_tab.fill_gui(self.celldef_tab)
-        # self.celldef_tab.fill_custom_data_tab()
-        
-        # self.user_params_tab = UserParams()
-        self.user_params_tab.xml_root = self.xml_root
-        self.user_params_tab.fill_gui()
-
 
     def reset_xml_root(self):
         self.celldef_tab.param_d.clear()  # seems unnecessary as being done in populate_tree. argh.
@@ -488,7 +421,7 @@ class PhysiCellXMLCreator(QWidget):
         # self.celldef_tab.clear_gui()
         self.celldef_tab.clear_custom_data_params()
         # self.celldef_tab.populate_tree()
-        populate_tree_cell_defs(self.celldef_tab)
+        populate_tree_cell_defs(self.celldef_tab, self.skip_validate)
         # self.celldef_tab.fill_gui(None)
         # self.celldef_tab.customize_cycle_choices() #rwh/todo: needed? 
         self.celldef_tab.fill_substrates_comboboxes()
@@ -500,6 +433,8 @@ class PhysiCellXMLCreator(QWidget):
         self.user_params_tab.clear_gui()
         self.user_params_tab.fill_gui()
 
+        self.rules_tab.fill_gui()
+
         self.vis_tab.init_plot_range(self.config_tab)
         self.vis_tab.reset_model()
         # self.vis_tab.setEnabled(False)
@@ -508,18 +443,6 @@ class PhysiCellXMLCreator(QWidget):
         self.enableLegendTab(True)
         self.tabWidget.setCurrentIndex(0)  # Config (default)
 
-
-    def show_sample_model(self):
-        print("studio.py: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~show_sample_model(): self.config_file = ", self.config_file)
-        self.tree = ET.parse(self.config_file)
-        self.run_tab.tree = self.tree
-        # self.xml_root = self.tree.getroot()
-        self.reset_xml_root()
-        self.setWindowTitle(self.title_prefix + self.config_file)
-        # self.config_tab.fill_gui(self.xml_root)  # 
-        # self.microenv_tab.fill_gui(self.xml_root)  # microenv
-        # self.celldef_tab.fill_gui("foobar")  # cell defs
-        # self.celldef_tab.fill_motility_substrates()
 
     def save_as_cb(self):
         # save_as_file = QFileDialog.getSaveFileName(self,'',".")
@@ -610,43 +533,6 @@ class PhysiCellXMLCreator(QWidget):
             print("config_file = ",config_file)
             self.run_tab.exec_name.setText(exec_pgm)
             self.run_tab.config_xml_name.setText(config_file)
-
-    def template_cb(self):
-        print("\n\n\n================ copy/load sample ======================================")
-        os.chdir(self.homedir)
-        name = "template"
-        # sample_file = Path("data", name + ".xml")
-        sample_file = Path(self.absolute_data_dir, name + ".xml")
-        copy_file = "copy_" + name + ".xml"
-        shutil.copy(sample_file, copy_file)
-
-        self.config_file = copy_file
-
-        try:
-            print("template_cb():------------- copying ",sample_file," to ",copy_file)
-            shutil.copy(sample_file, copy_file)
-        except:
-            print("template_cb(): Unable to copy file(1).")
-            sys.exit(1)
-
-        try:
-            print("template_cb():------------- copying ",sample_file," to config.xml")
-            shutil.copy(sample_file, "config.xml")
-        except:
-            print("template_cb(): Unable to copy file(2).")
-            sys.exit(1)
-
-        self.add_new_model(copy_file, True)
-        self.config_file = copy_file
-        print("template_cb:   self.config_file = ",self.config_file)
-
-        self.show_sample_model()
-        if self.nanohub_flag:
-            self.run_tab.exec_name.setText('rules')
-        else:
-            self.run_tab.exec_name.setText('../rules')
-        self.vis_tab.show_edge = False   # no longer used?
-        self.vis_tab.bgcolor = [1,1,1,1]
 
 
 def main():
