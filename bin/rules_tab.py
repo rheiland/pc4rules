@@ -234,7 +234,7 @@ class Rules(QWidget):
         hlayout.addWidget(label) 
         self.rule_hill_power = QLineEdit()
         self.rule_hill_power.setText('4')
-        self.rule_hill_power.setFixedWidth(100)
+        self.rule_hill_power.setFixedWidth(30)
         self.rule_hill_power.setValidator(QtGui.QIntValidator())
         hlayout.addWidget(self.rule_hill_power)
 
@@ -253,13 +253,13 @@ class Rules(QWidget):
         # self.rules_tab_layout.addWidget(rules_table) 
         # self.rules_tab_layout.addWidget(self.rules_table) 
 
-        delete_custom_data_btn = QPushButton("Delete rule")
-        delete_custom_data_btn.setFixedWidth(150)
-        # delete_custom_data_btn.setAlignment(QtCore.Qt.AlignLeft)
-        # delete_custom_data_btn.clicked.connect(self.delete_custom_data_cb)
-        delete_custom_data_btn.setStyleSheet("background-color: yellow")
-        # hlayout.addWidget(delete_custom_data_btn)
-        self.rules_tab_layout.addWidget(delete_custom_data_btn) 
+        delete_rule_btn = QPushButton("Delete rule")
+        delete_rule_btn.setFixedWidth(150)
+        # delete_rule_btn.setAlignment(QtCore.Qt.AlignLeft)
+        delete_rule_btn.clicked.connect(self.delete_rule_cb)
+        delete_rule_btn.setStyleSheet("background-color: yellow")
+        # hlayout.addWidget(delete_rule_btn)
+        self.rules_tab_layout.addWidget(delete_rule_btn) 
 
         #----------------------
         hlayout = QHBoxLayout()
@@ -356,22 +356,11 @@ class Rules(QWidget):
 
     #--------------------------------------------------------
     def create_rules_table(self):
-
-
-        # self.custom_var_conserved = False
-        # self.custom_var_value_str_default = '0.0'
-        # self.custom_var_conserved_default = False
-
-        # self.custom_table_disabled = False
-
         rules_table_w = QWidget()
         rules_table_scroll = QScrollArea()
-
-        #------ Delete rulle button
         vlayout = QVBoxLayout()
-
         self.rules_table = QTableWidget()
-        # self.rules_table.cellClicked.connect(self.custom_data_cell_was_clicked)
+        # self.rules_table.cellClicked.connect(self.rules_cell_was_clicked)
 
         self.rules_table.setColumnCount(10)
         self.rules_table.setRowCount(self.max_rule_table_rows)
@@ -539,6 +528,7 @@ class Rules(QWidget):
             idx_row += 1
             # glayout.addWidget(blank_line, idx_row,0, 1,1) # w, row, column, rowspan, colspan
 
+    #-----------------------------------------------------------
     def signal_dropdown_changed_cb(self, idx):
         name = self.signal_dropdown.currentText()
         self.signal = name
@@ -552,6 +542,7 @@ class Rules(QWidget):
         # if idx == -1:
         #     return
 
+    #-----------------------------------------------------------
     def fill_rules(self, full_rules_fname):
         print("\n---------------- fill_rules():  full_rules_fname=",full_rules_fname)
         print("fill_rules():  os.getcwd()=",os.getcwd())
@@ -568,7 +559,11 @@ class Rules(QWidget):
                         # self.rules_table.setCellWidget(irow, self.custom_icol_name, w_varname)   # 1st col
                         for idx in range(9):  # hard-code for now :/
                             self.rules_table.cellWidget(irow, idx).setText(elm[idx])
-                        self.rules_table.cellWidget(irow,self.rules_applydead_idx).setChecked(True)
+
+                        if int(elm[9]) == 0:
+                            self.rules_table.cellWidget(irow,self.rules_applydead_idx).setChecked(False)
+                        else:
+                            self.rules_table.cellWidget(irow,self.rules_applydead_idx).setChecked(True)
                         irow += 1
                     self.num_rules = irow
                     print("fill_rules():  num_rules=",self.num_rules)
@@ -590,6 +585,7 @@ class Rules(QWidget):
     #     self.rules_file.setText("")
         return
 
+    #-----------------------------------------------------------
     def add_rule_cb(self):
         # old: create csv string
         rule_str = self.celltype_dropdown.currentText()
@@ -636,6 +632,165 @@ class Rules(QWidget):
         # self.rules_text.appendPlainText(rule_str)
         return
 
+    #--------------------------------------------------------
+    def add_row_rules_table(self, row_num):
+        # row_num = self.max_custom_data_rows - 1
+        self.rules_table.insertRow(row_num)
+        for irow in [row_num]:
+            print("=== add_row_rules_table(): irow=",irow)
+            # ------- CellType
+            w_me = MyQLineEdit()
+            w_me.setFrame(False)
+            rx_valid_varname = QtCore.QRegExp("^[a-zA-Z][a-zA-Z0-9_]+$")
+            name_validator = QtGui.QRegExpValidator(rx_valid_varname )
+            w_me.setValidator(name_validator)
+
+            self.rules_table.setCellWidget(irow, self.rules_celltype_idx, w_me)
+
+            w_me.vname = w_me  
+            w_me.wrow = irow
+            w_me.wcol = self.rules_celltype_idx
+
+            # ------- Behavior
+            # w_varval = MyQLineEdit('0.0')
+            w_me = MyQLineEdit()
+            w_me.setFrame(False)
+            # item = QTableWidgetItem('')
+            w_me.vname = w_me  
+            w_me.wrow = irow
+            w_me.wcol = self.rules_behavior_idx
+            # w_me.idx = irow   # rwh: is .idx used?
+            # w_me.setValidator(QtGui.QDoubleValidator())
+            # self.rules_table.setItem(irow, self.custom_icol_value, item)
+            self.rules_table.setCellWidget(irow, self.rules_behavior_idx, w_me)
+            # w_varval.textChanged[str].connect(self.custom_data_value_changed)  # being explicit about passing a string 
+
+            # ------- Min val
+            w_me = MyQLineEdit()
+            w_me.setValidator(QtGui.QDoubleValidator())
+            w_me.setFrame(False)
+            w_me.vname = w_me  
+            w_me.wrow = irow
+            w_me.wcol = self.rules_minval_idx
+            self.rules_table.setCellWidget(irow, self.rules_minval_idx, w_me)
+            # w_var_units.textChanged[str].connect(self.custom_data_units_changed)  # being explicit about passing a string 
+
+            # ------- Base val
+            w_me = MyQLineEdit()
+            w_me.setFrame(False)
+            # item = QTableWidgetItem('')
+            w_me.vname = w_me  
+            w_me.wrow = irow
+            w_me.wcol = self.rules_baseval_idx
+            # w_var_desc.idx = irow
+            # w_varval.setValidator(QtGui.QDoubleValidator())
+            # self.rules_table.setItem(irow, self.custom_icol_desc, item)
+            self.rules_table.setCellWidget(irow, self.rules_baseval_idx, w_me)
+            # w_var_desc.textChanged[str].connect(self.custom_data_desc_changed)  # being explicit about passing a string 
+
+            # ------- Max val
+            w_me = MyQLineEdit()
+            w_me.setValidator(QtGui.QDoubleValidator())
+            w_me.setFrame(False)
+            w_me.vname = w_me  
+            w_me.wrow = irow
+            w_me.wcol = self.rules_maxval_idx
+            self.rules_table.setCellWidget(irow, self.rules_maxval_idx, w_me)
+            # w_var_units.textChanged[str].connect(self.custom_data_units_changed)  # being explicit about passing a string 
+
+            # ------- Signal
+            w_me = MyQLineEdit()
+            w_me.setFrame(False)
+            w_me.vname = w_me  
+            w_me.wrow = irow
+            w_me.wcol = self.rules_signal_idx
+            self.rules_table.setCellWidget(irow, self.rules_signal_idx, w_me)
+            # w_var_units.textChanged[str].connect(self.custom_data_units_changed)  # being explicit about passing a string 
+
+            # ------- Direction
+            w_me = MyQLineEdit()
+            w_me.setFrame(False)
+            w_me.vname = w_me  
+            w_me.wrow = irow
+            w_me.wcol = self.rules_direction_idx
+            self.rules_table.setCellWidget(irow, self.rules_direction_idx, w_me)
+            # w_var_units.textChanged[str].connect(self.custom_data_units_changed)  # being explicit about passing a string 
+
+            # ------- Half-max
+            w_me = MyQLineEdit()
+            w_me.setValidator(QtGui.QDoubleValidator())
+            w_me.setFrame(False)
+            w_me.vname = w_me  
+            w_me.wrow = irow
+            w_me.wcol = self.rules_halfmax_idx
+            self.rules_table.setCellWidget(irow, self.rules_halfmax_idx, w_me)
+            # w_var_units.textChanged[str].connect(self.custom_data_units_changed)  # being explicit about passing a string 
+
+            # ------- Hill power
+            w_me = MyQLineEdit()
+            w_me.setValidator(QtGui.QIntValidator())
+            w_me.setFrame(False)
+            w_me.vname = w_me  
+            w_me.wrow = irow
+            w_me.wcol = self.rules_hillpower_idx
+            self.rules_table.setCellWidget(irow, self.rules_hillpower_idx, w_me)
+            # w_var_units.textChanged[str].connect(self.custom_data_units_changed)  # being explicit about passing a string 
+
+            # ------- Apply to dead
+            w_me = MyQCheckBox()
+            # w_var_conserved.setFrame(False)
+            w_me.vname = "foobar"  
+            w_me.wrow = irow
+            w_me.wcol = self.rules_applydead_idx
+            # w_me.clicked.connect(self.custom_var_conserved_clicked)
+
+            # rwh NB! Leave these lines in (for less confusing clicking/coloring of cell)
+            item = QTableWidgetItem('')
+            item.setFlags(QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled)
+            self.rules_table.setItem(irow, self.rules_applydead_idx, item)
+
+            self.rules_table.setCellWidget(irow, self.rules_applydead_idx, w_me)
+
+
+    #--------------------------------------------------------
+    # Delete an entire rule. 
+    def delete_rule_cb(self):
+        row = self.rules_table.currentRow()
+        print("------------- delete_rule_cb(), row=",row)
+        # varname = self.custom_data_table.cellWidget(row,self.custom_icol_name).text()
+        # print(" custom var name= ",varname)
+        # print(" master_custom_var_d= ",self.master_custom_var_d)
+
+        # if varname in self.master_custom_var_d.keys():
+        #     self.master_custom_var_d.pop(varname)
+        #     for key in self.master_custom_var_d.keys():
+        #         if self.master_custom_var_d[key][0] > row:   # remember: [row, units, description]
+        #             self.master_custom_var_d[key][0] -= 1
+        #     # remove (pop) this custom var name from ALL cell types
+        #     for cdef in self.param_d.keys():
+        #         # print(f"   popping {varname} from {cdef}")
+        #         self.param_d[cdef]['custom_data'].pop(varname)
+
+        # Since each widget in each row had an associated row #, we need to decrement all those following
+        # the row that was just deleted.
+        # for irow in range(row, self.max_custom_data_rows):
+        for irow in range(row, self.max_rule_table_rows):
+            # print("---- decrement wrow in irow=",irow)
+            # self.rules_celltype_idx = 0
+            # self.rules_behavior_idx = 1
+            self.rules_table.cellWidget(irow,self.rules_celltype_idx).wrow -= 1  # sufficient to only decr the "name" column
+
+            # print(f"   after removing {varname}, master_custom_var_d= ",self.master_custom_var_d)
+
+        self.rules_table.removeRow(row)
+
+        self.add_row_rules_table(self.max_rule_table_rows - 1)
+        # self.enable_all_custom_data()
+
+        # print(" 2)master_custom_var_d= ",self.master_custom_var_d)
+        # print("------------- LEAVING  delete_custom_data_cb")
+
+    #-----------------------------------------------------------
     def load_rules_cb(self):
         # filePath = QFileDialog.getOpenFileName(self,'',".",'*.xml')
         filePath = QFileDialog.getOpenFileName(self,'',".")
@@ -669,6 +824,7 @@ class Rules(QWidget):
         else:
             print("load_rules_cb():  full_path_model_name is NOT valid")
 
+    #-----------------------------------------------------------
     def save_rules_cb(self):
         folder_name = self.rules_folder.text()
         file_name = self.rules_file.text()
@@ -677,8 +833,8 @@ class Rules(QWidget):
         try:
             # with open("config/rules.csv", 'rU') as f:
             with open(full_rules_fname, 'w') as f:
-                rules_text = self.rules_text.toPlainText()
-                f.write(rules_text )
+                # rules_text = self.rules_text.toPlainText()
+                # f.write(rules_text )
                 print(f'rules_tab.py: Wrote rules to {full_rules_fname}')
         except Exception as e:
         # self.dialog_critical(str(e))
@@ -696,6 +852,7 @@ class Rules(QWidget):
     #     self.rules_file.setText("")
         return
 
+    #-----------------------------------------------------------
     def fill_gui(self):
         # logging.debug(f'\n\n------------\nrules_tab.py: fill_gui():')
         print(f'\n\n------------\nrules_tab.py: fill_gui():')
@@ -818,12 +975,13 @@ class Rules(QWidget):
             #     logging.error(f'{full_rules_fname} is not a valid file')
 
         else:  # should empty the Rules tab
-            self.rules_text.setPlainText("")
+            # self.rules_text.setPlainText("")
             self.rules_folder.setText("")
             self.rules_file.setText("")
             self.rules_enabled.setChecked(False)
         return
 
+    #-----------------------------------------------------------
     # Read values from the GUI widgets and generate/write a new XML
     def fill_xml(self):
         indent8 = '\n        '
