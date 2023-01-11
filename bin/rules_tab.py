@@ -7,12 +7,13 @@ Dr. Paul Macklin (macklinp@iu.edu)
 
 import sys
 import os
+import csv
 import logging
 import xml.etree.ElementTree as ET  # https://docs.python.org/2/library/xml.etree.elementtree.html
 from pathlib import Path
 # import xml.etree.ElementTree as ET  # https://docs.python.org/2/library/xml.etree.elementtree.html
 from PyQt5 import QtCore, QtGui
-from PyQt5.QtWidgets import QFrame,QApplication,QWidget,QTabWidget,QLineEdit, QVBoxLayout,QRadioButton,QLabel,QCheckBox,QComboBox,QScrollArea,QGridLayout,QPushButton, QPlainTextEdit, QFileDialog
+from PyQt5.QtWidgets import QFrame,QApplication,QWidget,QTabWidget,QLineEdit, QGroupBox,QHBoxLayout,QVBoxLayout,QRadioButton,QLabel,QCheckBox,QComboBox,QScrollArea,QGridLayout,QPushButton,QFileDialog,QTableWidget,QTableWidgetItem,QHeaderView
 from PyQt5.QtWidgets import QMessageBox
 # from PyQt5.QtGui import QTextEdit
 
@@ -22,6 +23,20 @@ class QHLine(QFrame):
         self.setFrameShape(QFrame.HLine)
         self.setFrameShadow(QFrame.Sunken)
 
+# Overloading the QCheckBox widget 
+class MyQCheckBox(QCheckBox):
+    vname = None
+    # idx = None  # index
+    wrow = 0  # widget's row in a table
+    wcol = 0  # widget's column in a table
+
+# Overloading the QLineEdit widget to let us map it to its variable name. Ugh.
+class MyQLineEdit(QLineEdit):
+    vname = None
+    # idx = None  # index
+    wrow = 0
+    wcol = 0
+    prev = None
 
 class Rules(QWidget):
     # def __init__(self, nanohub_flag):
@@ -33,6 +48,7 @@ class Rules(QWidget):
 
         self.microenv_tab = microenv_tab
         self.celldef_tab = celldef_tab
+        self.max_rule_table_rows = 99
 
         # self.studio_flag = studio_flag
         self.studio_flag = None
@@ -53,7 +69,12 @@ class Rules(QWidget):
 
         self.rules_params = QWidget()
 
-        self.rules_tab_layout = QGridLayout()
+        # self.setSizePolicy(Qt.QSizePolicy.Fixed, Qt.QSizePolicy.Expanding)  # horiz, vert
+        # self.setSizePolicy(Qt.QSizePolicy.Fixed, Qt.QSizePolicy.Fixed)  # horiz, vert
+        # self.setSizePolicy(Qt.QSizePolicy.Fixed, Qt.QSizePolicy.Fixed)
+
+        # self.rules_tab_layout = QGridLayout()
+        self.rules_tab_layout = QVBoxLayout()
 
         # ----- signals:
         # -- <ubstrates>
@@ -70,136 +91,190 @@ class Rules(QWidget):
         idx_row = 0
         # self.check1 = QCheckBox("")
         # self.rules_tab_layout.addWidget(self.check1, idx_row,1,1,1)
-        icol = 0
+        hlayout = QHBoxLayout()
+        # hlayout.addStretch(0)
+
+        # hbox1 = QHBoxLayout()
+        # hbox1.addWidget(QLabel("                 "))
+        # hlayout.addWidget(QLabel("                 "))
+
+        label = QLabel("Cell Type:")
+        label.setAlignment(QtCore.Qt.AlignRight)
+        # label.setFixedHeight(25)
+
+        # label.setFixedWidth(300)
+        hlayout.addWidget(label,1)
+
         self.celltype_dropdown = QComboBox()
-        self.rules_tab_layout.addWidget(self.celltype_dropdown, idx_row,icol, 1,1) # w, row, column, rowspan, colspan
+        # self.celltype_dropdown.setFixedWidth(300)
+        # self.celltype_dropdown.setAlignment(QtCore.Qt.AlignLeft)
+        # hlayout.addWidget(self.celltype_dropdown,1) # w, expand, align
+        hlayout.addWidget(self.celltype_dropdown, 0) # w, expand, align
+        # hlayout.addWidget(self.celltype_dropdown,0,Qt.AlignLeft) # w, expand, align
+        # hlayout.addLayout(hbox1,1) # w, expand, align
+        # hlayout.addLayout(hbox1,0) # w, expand, align
+        # hlayout.addLayout(hbox1) # w, expand, align
 
-        # label = QLabel("")
-        # # label.setFixedHeight(label_height)
-        # # label.setStyleSheet("background-color: orange")
-        # label.setAlignment(QtCore.Qt.AlignCenter)
-        # self.rules_tab_layout.addWidget(label, idx_row,3,1,5) 
 
-        icol += 1
-        self.behavior_dropdown = QComboBox()
-        # self.behavior_dropdown.addItem("cycle entry")
-        self.rules_tab_layout.addWidget(self.behavior_dropdown, idx_row,icol, 1,1) # w, row, column, rowspan, colspan
-        # self.behavior_dropdown.currentIndexChanged.connect(self.signal_dropdown_changed_cb)  
-
-        self.rule_min_val = QLineEdit()
-        self.rule_min_val.setText('0.')
-        self.rule_min_val.setValidator(QtGui.QDoubleValidator())
-        icol += 1
-        self.rules_tab_layout.addWidget(self.rule_min_val, idx_row,icol,1,1) # w, row, column, rowspan, 
-
-        self.rule_base_val = QLineEdit()
-        self.rule_base_val.setText('1.e-5')
-        self.rule_base_val.setValidator(QtGui.QDoubleValidator())
-        icol += 1
-        self.rules_tab_layout.addWidget(self.rule_base_val, idx_row,icol,1,1) # w, row, column, rowspan, 
-
-        self.rule_max_val = QLineEdit()
-        self.rule_max_val.setText('3.e-4')
-        self.rule_max_val.setValidator(QtGui.QDoubleValidator())
-        icol += 1
-        self.rules_tab_layout.addWidget(self.rule_max_val, idx_row,icol,1,1) # w, row, column, rowspan, 
-
-        # idx_row += 1
-        # self.check2 = QCheckBox("")
-        # self.rules_tab_layout.addWidget(self.check2, idx_row,1,1,1)
-
-        icol += 1
-        self.signal_dropdown = QComboBox()
-        self.rules_tab_layout.addWidget(self.signal_dropdown, idx_row,icol, 1,1) # w, row, column, rowspan, colspan
-        self.signal_dropdown.currentIndexChanged.connect(self.signal_dropdown_changed_cb)  
-
-        # self.celltype_dropdown.currentIndexChanged.connect(self.celltype_dropdown_changed_cb)  
-
-        icol += 1
-        self.up_down_dropdown = QComboBox()
-        self.up_down_dropdown.addItem("increases")
-        self.up_down_dropdown.addItem("decreases")
-        self.rules_tab_layout.addWidget(self.up_down_dropdown, idx_row,icol, 1,1) # w, row, column, rowspan, colspan
-
-        self.rule_half_max = QLineEdit()
-        self.rule_half_max.setText('21.')
-        self.rule_half_max.setValidator(QtGui.QDoubleValidator())
-        icol += 1
-        self.rules_tab_layout.addWidget(self.rule_half_max, idx_row,icol,1,1) # w, row, column, rowspan, 
-
-        self.rule_hill_power = QLineEdit()
-        self.rule_hill_power.setText('4.')
-        self.rule_hill_power.setValidator(QtGui.QDoubleValidator())
-        icol += 1
-        self.rules_tab_layout.addWidget(self.rule_hill_power, idx_row,icol,1,1) # w, row, column, rowspan, 
-
-        label = QLabel("")
-        label.setAlignment(QtCore.Qt.AlignCenter)
-        # self.rules_tab_layout.addWidget(label, idx_row,3,1,5) 
-
-        # self.rules_tab_layout.addWidget(self.signal_dropdown, idx_row,2, 1,1) # w, row, column, rowspan, colspan
-        # self.signals_dropdown.currentIndexChanged.connect(self.live_phagocytosis_dropdown_changed_cb)  # beware: will be triggered on a ".clear" too
-        # ----- behaviors
-
-        # ----- rules
         self.add_rule_button = QPushButton("Add rule")
+        # self.add_rule_button.setFixedWidth(150)
+        # self.add_rule_button.setAlignment(QtCore.Qt.AlignLeft)
         # self.add_rule_button.setStyleSheet("background-color: rgb(250,100,100)")
         self.add_rule_button.setStyleSheet("background-color: lightgreen")
         self.add_rule_button.clicked.connect(self.add_rule_cb)
-        idx_row += 1
-        self.rules_tab_layout.addWidget(self.add_rule_button, idx_row,0,1,1) 
-        # self.add_rule_button.clicked.connect(self.add_rule_cb)
+        # idx_row += 1
+        hlayout.addWidget(self.add_rule_button,0) 
+        # hlayout.addWidget(self.add_rule_button) 
+
+        # hlayout.addWidget(QLabel("                         ")) 
+
+        hlayout.addStretch(1)
+        self.rules_tab_layout.addLayout(hlayout) 
+
+        #--------------
+        hlayout = QHBoxLayout()
+        # hlayout.addStretch(0)
+
+        label = QLabel("Behavior")
+        # label.setAlignment(QtCore.Qt.AlignCenter)
+        label.setAlignment(QtCore.Qt.AlignLeft)
+        hlayout.addWidget(label) 
+
+
+        self.behavior_dropdown = QComboBox()
+        self.behavior_dropdown.setFixedWidth(300)
+        hlayout.addWidget(self.behavior_dropdown) 
+        # self.behavior_dropdown.currentIndexChanged.connect(self.signal_dropdown_changed_cb)  
+
+        self.rules_tab_layout.addLayout(hlayout) 
+
+        #------------
+        self.rule_min_val = QLineEdit()
+        self.rule_min_val.setText('0.')
+        self.rule_min_val.setValidator(QtGui.QDoubleValidator())
+        hlayout.addWidget(self.rule_min_val)
+
+        #------------
+        self.rule_base_val = QLineEdit()
+        self.rule_base_val.setText('1.e-5')
+        self.rule_base_val.setValidator(QtGui.QDoubleValidator())
+        hlayout.addWidget(self.rule_base_val)
+
+        #------------
+        self.rule_max_val = QLineEdit()
+        self.rule_max_val.setText('3.e-4')
+        self.rule_max_val.setValidator(QtGui.QDoubleValidator())
+        hlayout.addWidget(self.rule_max_val)
+
+        self.rules_tab_layout.addLayout(hlayout) 
+        #------------
+        hlayout = QHBoxLayout()
+
+        label = QLabel("Signal")
+        label.setFixedWidth(100)
+        # label.setAlignment(QtCore.Qt.AlignCenter)
+        # label.setAlignment(QtCore.Qt.AlignLeft)
+        label.setAlignment(QtCore.Qt.AlignRight)
+        hlayout.addWidget(label) 
+
+        self.signal_dropdown = QComboBox()
+        self.signal_dropdown.setFixedWidth(300)
+        self.signal_dropdown.currentIndexChanged.connect(self.signal_dropdown_changed_cb)  
+        hlayout.addWidget(self.signal_dropdown)
+
+        # self.celltype_dropdown.currentIndexChanged.connect(self.celltype_dropdown_changed_cb)  
+
+        self.up_down_dropdown = QComboBox()
+        self.up_down_dropdown.setFixedWidth(110)
+        self.up_down_dropdown.addItem("increases")
+        self.up_down_dropdown.addItem("decreases")
+        hlayout.addWidget(self.up_down_dropdown)
+
+        self.rule_half_max = QLineEdit()
+        self.rule_half_max.setText('21.')
+        self.rule_half_max.setFixedWidth(100)
+        self.rule_half_max.setValidator(QtGui.QDoubleValidator())
+        hlayout.addWidget(self.rule_half_max)
+
+        self.rule_hill_power = QLineEdit()
+        self.rule_hill_power.setText('4')
+        self.rule_hill_power.setFixedWidth(100)
+        self.rule_hill_power.setValidator(QtGui.QIntValidator())
+        hlayout.addWidget(self.rule_hill_power)
 
         self.dead_cells_rule = False
         self.dead_cells_checkbox = QCheckBox("applies to dead cells")
-        icol = 2
-        self.rules_tab_layout.addWidget(self.dead_cells_checkbox, idx_row,icol,1,1) # w, row, column, rowspan, colspan
+        hlayout.addWidget(self.dead_cells_checkbox)
+
+        self.rules_tab_layout.addLayout(hlayout) 
+
+        #---------------------------------------------------------
+        #----------------------
+        rules_table_vbox = self.create_rules_table()
+        # self.create_rules_table()
+
+        self.rules_tab_layout.addLayout(rules_table_vbox) 
+        # self.rules_tab_layout.addWidget(rules_table) 
+        # self.rules_tab_layout.addWidget(self.rules_table) 
+
+        delete_custom_data_btn = QPushButton("Delete rule")
+        delete_custom_data_btn.setFixedWidth(150)
+        # delete_custom_data_btn.setAlignment(QtCore.Qt.AlignLeft)
+        # delete_custom_data_btn.clicked.connect(self.delete_custom_data_cb)
+        delete_custom_data_btn.setStyleSheet("background-color: yellow")
+        # hlayout.addWidget(delete_custom_data_btn)
+        self.rules_tab_layout.addWidget(delete_custom_data_btn) 
 
         #----------------------
-        self.rules_text = QPlainTextEdit()  # config/cell_rules.csv
-        self.rules_text.setReadOnly(False)
+        hlayout = QHBoxLayout()
 
-        idx_row += 1
-        self.rules_tab_layout.addWidget(self.rules_text, idx_row,0,1,9)  # w, row, col, rowspan, colspan
-        # self.text.resize(400,900)  # nope
+        groupbox = QGroupBox()
+        hbox = QHBoxLayout()
+        groupbox.setLayout(hbox)
 
-        #----------------------
-        idx_row += 1
-        icol = 0
-        self.load_rules_button = QPushButton("Load")
+        self.load_rules_button = QPushButton("Load rules (.csv)")
+        self.load_rules_button.setFixedWidth(200)
         # print("Load button.size= ",self.load_rules_button.size())
         self.load_rules_button.setStyleSheet("background-color: lightgreen")
         self.load_rules_button.clicked.connect(self.load_rules_cb)
-        self.rules_tab_layout.addWidget(self.load_rules_button, idx_row,icol,1,1) 
+        # hlayout.addWidget(self.load_rules_button) 
+        hbox.addWidget(self.load_rules_button) 
 
-        icol += 1
-        self.save_rules_button = QPushButton("Save rules")
-        self.save_rules_button.setStyleSheet("background-color: lightgreen")
-        self.save_rules_button.clicked.connect(self.save_rules_cb)
-        self.rules_tab_layout.addWidget(self.save_rules_button, idx_row,icol,1,1) 
-
-        icol += 1
         label = QLabel("folder")
         label.setAlignment(QtCore.Qt.AlignRight)
-        self.rules_tab_layout.addWidget(label, idx_row,icol,1,1) # w, row, column, rowspan, colspan
-
+        hbox.addWidget(label) 
         self.rules_folder = QLineEdit()
-        icol += 1
-        self.rules_tab_layout.addWidget(self.rules_folder, idx_row,icol,1,2) # w, row, column, rowspan, colspan
+        self.rules_folder.setFixedWidth(200)
+        hbox.addWidget(self.rules_folder) 
 
-        icol += 2
         label = QLabel("file")
         label.setAlignment(QtCore.Qt.AlignRight)
-        self.rules_tab_layout.addWidget(label, idx_row,icol,1,1) # w, row, column, rowspan, colspan
-
+        hbox.addWidget(label) 
         self.rules_file = QLineEdit()
-        icol += 1
-        self.rules_tab_layout.addWidget(self.rules_file, idx_row,icol,1,2) # w, row, column, rowspan, colspan
+        self.rules_file.setFixedWidth(200)
+        hbox.addWidget(self.rules_file) 
 
-        # idx_row += 1
+        # hlayout.addLayout(hbox) 
+        hlayout.addWidget(groupbox) 
+        groupbox.setStyleSheet("QGroupBox { border: 1px solid black;}")
+
+        #-------
+        self.validate_button = QPushButton("Validate")
+        self.validate_button.setFixedWidth(100)
+        self.validate_button.setStyleSheet("background-color: lightgreen")
+        self.validate_button.clicked.connect(self.save_rules_cb)
+        hlayout.addWidget(self.validate_button) 
+
+        self.save_button = QPushButton("Save")
+        self.save_button.setFixedWidth(100)
+        self.save_button.setStyleSheet("background-color: lightgreen")
+        self.save_button.clicked.connect(self.save_rules_cb)
+        hlayout.addWidget(self.save_button) 
+
+        self.rules_tab_layout.addLayout(hlayout) 
+
         self.rules_enabled = QCheckBox("enable")
-        icol += 2
-        self.rules_tab_layout.addWidget(self.rules_enabled, idx_row,icol,1,1) # w, row, column, rowspan, colspan
+        self.rules_tab_layout.addWidget(self.rules_enabled) 
 
         #----------------------
         # try:
@@ -241,13 +316,201 @@ class Rules(QWidget):
         self.layout.addWidget(self.scroll)
 
 
+    #--------------------------------------------------------
+    def create_rules_table(self):
+
+        # table columns' indices
+        self.rules_celltype_idx = 0
+        self.rules_behavior_idx = 1
+        self.rules_minval_idx = 2
+        self.rules_baseval_idx = 3
+        self.rules_maxval_idx = 4
+        self.rules_signal_idx = 5
+        self.rules_direction_idx = 6
+        self.rules_halfmax_idx = 7
+        self.rules_hillpower_idx = 8
+        self.rules_applydead_idx = 9
+
+        # self.custom_var_conserved = False
+        # self.custom_var_value_str_default = '0.0'
+        # self.custom_var_conserved_default = False
+
+        # self.custom_table_disabled = False
+
+        rules_table_w = QWidget()
+        rules_table_scroll = QScrollArea()
+
+        #------ Delete rulle button
+        vlayout = QVBoxLayout()
+
+        self.rules_table = QTableWidget()
+        # self.rules_table.cellClicked.connect(self.custom_data_cell_was_clicked)
+
+        self.rules_table.setColumnCount(10)
+        self.rules_table.setRowCount(self.max_rule_table_rows)
+
+        header = self.rules_table.horizontalHeader()       
+        # header.setSectionResizeMode(0, QHeaderView.Stretch)
+        # header.setSectionResizeMode(8, QHeaderView.ResizeToContents)  # arg, don't work as expected
+        # header.setSectionResizeMode(9, QHeaderView.ResizeToContents)
+
+        self.rules_table.setHorizontalHeaderLabels(['CellType','Behavior','Min val','Base val','Max val', 'Signal','Direction','Half-max','Hill power','Apply to dead'])
+
+        # Don't like the behavior these offer, e.g., locks down width of 0th column :/
+        # header = self.rules_table.horizontalHeader()       
+        # header.setSectionResizeMode(0, QHeaderView.Stretch)
+        # header.setSectionResizeMode(0, QHeaderView.ResizeToContents)
+            
+        for irow in range(self.max_rule_table_rows):
+            # print("------------ rules table row # ",irow)
+
+            # ------- CellType
+            w_me = MyQLineEdit()
+            w_me.setFrame(False)
+            rx_valid_varname = QtCore.QRegExp("^[a-zA-Z][a-zA-Z0-9_]+$")
+            name_validator = QtGui.QRegExpValidator(rx_valid_varname )
+            w_me.setValidator(name_validator)
+
+            self.rules_table.setCellWidget(irow, self.rules_celltype_idx, w_me)
+
+            w_me.vname = w_me  
+            w_me.wrow = irow
+            w_me.wcol = self.rules_celltype_idx
+
+
+            # ------- Behavior
+            # w_varval = MyQLineEdit('0.0')
+            w_me = MyQLineEdit()
+            w_me.setFrame(False)
+            # item = QTableWidgetItem('')
+            w_me.vname = w_me  
+            w_me.wrow = irow
+            w_me.wcol = self.rules_behavior_idx
+            # w_me.idx = irow   # rwh: is .idx used?
+            # w_me.setValidator(QtGui.QDoubleValidator())
+            # self.rules_table.setItem(irow, self.custom_icol_value, item)
+            self.rules_table.setCellWidget(irow, self.rules_behavior_idx, w_me)
+            # w_varval.textChanged[str].connect(self.custom_data_value_changed)  # being explicit about passing a string 
+
+            # ------- Min val
+            w_me = MyQLineEdit()
+            w_me.setValidator(QtGui.QDoubleValidator())
+            w_me.setFrame(False)
+            w_me.vname = w_me  
+            w_me.wrow = irow
+            w_me.wcol = self.rules_minval_idx
+            self.rules_table.setCellWidget(irow, self.rules_minval_idx, w_me)
+            # w_var_units.textChanged[str].connect(self.custom_data_units_changed)  # being explicit about passing a string 
+
+            # ------- Base val
+            w_me = MyQLineEdit()
+            w_me.setFrame(False)
+            # item = QTableWidgetItem('')
+            w_me.vname = w_me  
+            w_me.wrow = irow
+            w_me.wcol = self.rules_baseval_idx
+            # w_var_desc.idx = irow
+            # w_varval.setValidator(QtGui.QDoubleValidator())
+            # self.rules_table.setItem(irow, self.custom_icol_desc, item)
+            self.rules_table.setCellWidget(irow, self.rules_baseval_idx, w_me)
+            # w_var_desc.textChanged[str].connect(self.custom_data_desc_changed)  # being explicit about passing a string 
+
+            # ------- Max val
+            w_me = MyQLineEdit()
+            w_me.setValidator(QtGui.QDoubleValidator())
+            w_me.setFrame(False)
+            w_me.vname = w_me  
+            w_me.wrow = irow
+            w_me.wcol = self.rules_maxval_idx
+            self.rules_table.setCellWidget(irow, self.rules_maxval_idx, w_me)
+            # w_var_units.textChanged[str].connect(self.custom_data_units_changed)  # being explicit about passing a string 
+
+            # ------- Signal
+            w_me = MyQLineEdit()
+            w_me.setFrame(False)
+            w_me.vname = w_me  
+            w_me.wrow = irow
+            w_me.wcol = self.rules_signal_idx
+            self.rules_table.setCellWidget(irow, self.rules_signal_idx, w_me)
+            # w_var_units.textChanged[str].connect(self.custom_data_units_changed)  # being explicit about passing a string 
+
+            # ------- Direction
+            w_me = MyQLineEdit()
+            w_me.setFrame(False)
+            w_me.vname = w_me  
+            w_me.wrow = irow
+            w_me.wcol = self.rules_direction_idx
+            self.rules_table.setCellWidget(irow, self.rules_direction_idx, w_me)
+            # w_var_units.textChanged[str].connect(self.custom_data_units_changed)  # being explicit about passing a string 
+
+            # ------- Half-max
+            w_me = MyQLineEdit()
+            w_me.setValidator(QtGui.QDoubleValidator())
+            w_me.setFrame(False)
+            w_me.vname = w_me  
+            w_me.wrow = irow
+            w_me.wcol = self.rules_halfmax_idx
+            self.rules_table.setCellWidget(irow, self.rules_halfmax_idx, w_me)
+            # w_var_units.textChanged[str].connect(self.custom_data_units_changed)  # being explicit about passing a string 
+
+            # ------- Hill power
+            w_me = MyQLineEdit()
+            w_me.setValidator(QtGui.QIntValidator())
+            w_me.setFrame(False)
+            w_me.vname = w_me  
+            w_me.wrow = irow
+            w_me.wcol = self.rules_hillpower_idx
+            self.rules_table.setCellWidget(irow, self.rules_hillpower_idx, w_me)
+            # w_var_units.textChanged[str].connect(self.custom_data_units_changed)  # being explicit about passing a string 
+
+
+            # ------- Apply to dead
+            w_me = MyQCheckBox()
+            # w_var_conserved.setFrame(False)
+            w_me.vname = w_me  
+            w_me.wrow = irow
+            w_me.wcol = self.rules_applydead_idx
+            # w_me.clicked.connect(self.custom_var_conserved_clicked)
+
+            # rwh NB! Leave these lines in (for less confusing clicking/coloring of cell)
+            item = QTableWidgetItem('')
+            item.setFlags(QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled)
+            self.rules_table.setItem(irow, self.rules_applydead_idx, item)
+
+            # self.rules_table.setCellWidget(irow, self.custom_icol_conserved, w_var_conserved)
+
+        # self.rules_table.itemClicked.connect(self.custom_data_clicked_cb)
+        # self.rules_table.cellChanged.connect(self.custom_data_changed_cb)
+
+        vlayout.addWidget(self.rules_table)
+
+        # self.layout = QVBoxLayout(self)
+        # # self.layout.addLayout(self.controls_hbox)
+
+        # self.layout.addWidget(self.splitter)
+
+        # rules_table_scroll.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
+        # rules_table_scroll.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
+        # rules_table_scroll.setWidgetResizable(True)
+        # rules_table_scroll.setWidget(rules_table_w) 
+
+
+        # custom_data_tab.setLayout(glayout)
+        # custom_data_tab.setLayout(vlayout)
+        # return rules_table_scroll
+        return vlayout
+
+        #--------------------------------------------------------
+    def sizeHint(self):
+        return QtCore.QSize(300,80) 
+
         #--------------------------------------------------------
     def insert_hacky_blank_lines(self, glayout):
         idx_row = 4
         for idx in range(11):  # rwh: hack solution to align rows
             blank_line = QLabel("")
             idx_row += 1
-            glayout.addWidget(blank_line, idx_row,0, 1,1) # w, row, column, rowspan, colspan
+            # glayout.addWidget(blank_line, idx_row,0, 1,1) # w, row, column, rowspan, colspan
 
     def signal_dropdown_changed_cb(self, idx):
         name = self.signal_dropdown.currentText()
@@ -263,17 +526,29 @@ class Rules(QWidget):
         #     return
 
     def fill_rules(self, full_rules_fname):
+        print("---------------- fill_rules():  full_rules_fname=",full_rules_fname)
+        print("fill_rules():  os.getcwd()=",os.getcwd())
         if os.path.isfile(full_rules_fname):
             try:
                 # with open("config/rules.csv", 'rU') as f:
                 with open(full_rules_fname, 'rU') as f:
-                    text = f.read()
-                    self.rules_text.setPlainText(text)
+                    csv_reader_obj = csv.reader(f)
+                    irow = 0
+                    for elm in csv_reader_obj:
+                        # ['tumor', 'cycle entry', '0', '1.70E-05', '7.00E-04', 'oxygen', 'increases', '21.5', '4', '0']
+                        # print("------ cell type= ",elm[0])
+                        print("------ elm= ",elm)
+                        # self.rules_table.setCellWidget(irow, self.custom_icol_name, w_varname)   # 1st col
+                        for idx in range(9):
+                            self.rules_table.cellWidget(irow, idx).setText(elm[idx])
+                        irow += 1
+
+                    # self.rules_text.setPlainText(text)
             except Exception as e:
             # self.dialog_critical(str(e))
             # print("error opening config/cells_rules.csv")
                 print(f'rules_tab.py: Error opening or reading {full_rules_fname}')
-                logging.error(f'rules_tab.py: Error opening or reading {full_rules_fname}')
+                # logging.error(f'rules_tab.py: Error opening or reading {full_rules_fname}')
                 # sys.exit(1)
         else:
             print(f'\n\n!!!  WARNING: fill_rules(): {full_rules_fname} is not a valid file !!!\n')
@@ -309,7 +584,8 @@ class Rules(QWidget):
         else:
             rule_str += '0'
 
-        self.rules_text.appendPlainText(rule_str)
+        # self.rules_text.appendPlainText(rule_str)
+        print("---> ",rule_str)
         return
 
     def load_rules_cb(self):
@@ -464,6 +740,7 @@ class Rules(QWidget):
         print(f'rules_tab.py: fill_gui(): <cell_rules> =  {uep}')
         if uep:
             folder_name = self.xml_root.find(".//cell_definitions//cell_rules//folder").text
+            print(f'rules_tab.py: fill_gui():  folder_name =  {folder_name}')
             self.rules_folder.setText(folder_name)
             file_name = self.xml_root.find(".//cell_definitions//cell_rules//filename").text
             self.rules_file.setText(file_name)
