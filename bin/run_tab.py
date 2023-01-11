@@ -36,7 +36,7 @@ class RunModel(QWidget):
         # used with nanoHUB app
         # self.nanohub = True
         # following set in pmb.py
-        self.current_dir = ''   
+        self.current_dir = '.'   
         self.config_file = None
         self.tree = None
 
@@ -45,7 +45,7 @@ class RunModel(QWidget):
         self.microenv_tab = None
         self.celldef_tab = None
         self.user_params_tab = None
-        self.rules_tab = None
+        self.rules_tab = None   # set in studio.py
         self.vis_tab = None
         self.legend_tab = None
 
@@ -93,7 +93,7 @@ class RunModel(QWidget):
             # self.exec_name.setEnabled(False)
         else:
             # self.exec_name.setText('../myproj')
-            self.exec_name.setText('rules')
+            self.exec_name.setText('../rules')
         hbox.addWidget(self.exec_name)
 
         hbox.addWidget(QLabel("Config:"))
@@ -127,13 +127,14 @@ class RunModel(QWidget):
 #------------------------------
     def update_xml_from_gui(self):
         self.xml_root = self.tree.getroot()
-        logging.debug(f'\n ========================== run_tab.py: update_xml_from_gui(): self.xml_root = {self.xml_root}')
+        # logging.debug(f'\n ========================== run_tab.py: update_xml_from_gui(): self.xml_root = {self.xml_root}')
+        print(f'\n ========================== run_tab.py: update_xml_from_gui(): self.xml_root = {self.xml_root}')
         self.config_tab.xml_root = self.xml_root
         self.microenv_tab.xml_root = self.xml_root
         self.celldef_tab.xml_root = self.xml_root
         self.user_params_tab.xml_root = self.xml_root
-        if self.rules_flag:
-            self.rules_tab.xml_root = self.xml_root
+        # if self.rules_flag:
+            # self.rules_tab.xml_root = self.xml_root
         # sys.exit(1)
 
         self.config_tab.fill_xml()
@@ -166,67 +167,40 @@ class RunModel(QWidget):
 
         self.run_button.setEnabled(False)
 
-        # if self.nanohub_flag: # copy normal workflow of an app, strange as it is
         if True: # copy normal workflow of an app, strange as it is
-
             # make sure we are where we started (app's root dir)
-            logging.debug(f'\n------>>>> doing os.chdir to {self.current_dir}')
-            os.chdir(self.current_dir)
+            os.chdir(self.homedir)
 
             # remove any previous data
             # NOTE: this dir name needs to match the <folder>  in /data/<config_file.xml>
-            if self.nanohub_flag:
-                os.system('rm -rf tmpdir*')
-            # else:
-                # os.system('rm -rf output*')
+            os.system('rm -rf tmpdir*')
             time.sleep(1)
-            if self.nanohub_flag and s.path.isdir('tmpdir'):
+            if os.path.isdir('tmpdir'):
                 # something on NFS causing issues...
                 tname = tempfile.mkdtemp(suffix='.bak', prefix='tmpdir_', dir='.')
                 shutil.move('tmpdir', tname)
-            if self.nanohub_flag:
-                os.makedirs('tmpdir')
-            else:
-                # os.makedirs('output')
-                self.output_dir = self.config_tab.folder.text()
-                # os.system('rm -rf tmpdir*')
-                os.system('rm -rf ' + self.output_dir)
-                logging.debug(f'run_tab.py:  doing: mkdir {self.output_dir}')
-                os.makedirs(self.output_dir)  # do 'mkdir output_dir'
-                time.sleep(1)
+            os.makedirs('tmpdir')
 
             # write the default config file to tmpdir
             # new_config_file = "tmpdir/config.xml"  # use Path; work on Windows?
-            if self.nanohub_flag:
-                tdir = os.path.abspath('tmpdir')
-            else:
-                # tdir = os.path.abspath('.')
-                tdir = os.path.abspath(self.output_dir)
-
+            tdir = os.path.abspath('tmpdir')
             new_config_file = Path(tdir,"config.xml")
-            self.celldef_tab.config_path = new_config_file
-            self.update_xml_from_gui()
 
             # write_config_file(new_config_file)  
             # update the .xml config file
+            self.update_xml_from_gui()
+
             # self.config_tab.fill_xml()
             # self.microenv_tab.fill_xml()
             # self.celldef_tab.fill_xml()
             # self.user_params_tab.fill_xml()
-            # print("\n\n ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-            logging.debug(f'run_tab.py: ----> writing modified model to {self.config_file}')
-            # print("run_tab.py: ----> writing modified model to ",new_config_file)
-            self.tree.write(self.config_file)
-            # self.tree.write(new_config_file)  # saves modified XML to <output_dir>/config.xml 
-            # sys.exit(1)
+            print("\n\n ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+            print("run_tab.py: ----> writing modified model to ",new_config_file)
+            self.tree.write(new_config_file)  # saves modified XML to tmpdir/config.xml 
 
             # Operate from tmpdir. XML: <folder>,</folder>; temporary output goes here.  May be copied to cache later.
-            if self.nanohub_flag:
-                tdir = os.path.abspath('tmpdir')
-                os.chdir(tdir)   # run exec from here on nanoHUB
-            # sub.update(tdir)
-            # subprocess.Popen(["../bin/myproj", "config.xml"])
-
+            tdir = os.path.abspath('tmpdir')
+            os.chdir(tdir)   # run exec from here on nanoHUB
 
         auto_load_params = True
         # if auto_load_params:

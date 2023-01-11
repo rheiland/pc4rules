@@ -568,7 +568,7 @@ class Vis(QWidget):
         dialog = QFileDialog()
         # self.output_dir = dialog.getExistingDirectory(self, 'Select an output directory')
         tmp_dir = dialog.getExistingDirectory(self, 'Select an output directory')
-        print("open_directory_cb:  tmp_dir=",tmp_dir)
+        # print("vis_tab.py: open_directory_cb:  tmp_dir=",tmp_dir)
         if tmp_dir == "":
             return
 
@@ -598,7 +598,7 @@ class Vis(QWidget):
         # print('bds=',bds)
         self.xmin = float(bds[0])
         self.xmax = float(bds[3])
-        print('reset_model(): self.xmin, xmax=',self.xmin, self.xmax)
+        # print('reset_model(): self.xmin, xmax=',self.xmin, self.xmax)
         self.x_range = self.xmax - self.xmin
         self.plot_xmin = self.xmin
         self.plot_xmax = self.xmax
@@ -715,7 +715,7 @@ class Vis(QWidget):
             self.reset_model_flag = False
 
         print('cwd = ',os.getcwd())
-        print('self.output_dir = ',self.output_dir)
+        # print('self.output_dir = ',self.output_dir)
         # xml_file = Path(self.output_dir, "initial.xml")
         # xml_files = glob.glob('tmpdir/output*.xml')
         xml_files = glob.glob('output*.xml')
@@ -728,10 +728,10 @@ class Vis(QWidget):
         num_xml = len(xml_files)
         # print('svg_files = ',svg_files)
         num_svg = len(svg_files)
-        print('num_xml, num_svg = ',num_xml, num_svg)
+        # print('num_xml, num_svg = ',num_xml, num_svg)
         last_xml = int(xml_files[-1][-12:-4])
         last_svg = int(svg_files[-1][-12:-4])
-        print('last_xml, _svg = ',last_xml,last_svg)
+        # print('last_xml, _svg = ',last_xml,last_svg)
         self.current_svg_frame = last_xml
         if last_svg < last_xml:
             self.current_svg_frame = last_svg
@@ -778,7 +778,7 @@ class Vis(QWidget):
             # print("-- plot_svg:", full_fname) 
             if not os.path.isfile(full_fname):
                 # print("Once output files are generated, click the slider.")   
-                print("play_plot_cb():  Reached the end (or no output files found).")
+                # print("play_plot_cb():  Reached the end (or no output files found).")
                 # self.timer.stop()
                 self.current_svg_frame -= 1
                 self.animating_flag = True

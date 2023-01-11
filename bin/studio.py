@@ -206,6 +206,7 @@ class PhysiCellXMLCreator(QWidget):
         self.homedir = os.getcwd()
         print("studio.py: self.homedir = ",self.homedir)
         self.run_tab.homedir = self.homedir
+        self.run_tab.rules_tab = self.rules_tab
         # self.run_tab.nanohub_flag = self.nanohub_flag
 
         # self.run_tab.xmin = 
@@ -265,6 +266,9 @@ class PhysiCellXMLCreator(QWidget):
             self.tabWidget.setCurrentIndex(0)    # About
         else:
             self.tabWidget.setCurrentIndex(0)  # About
+
+        self.tabWidget.setCurrentIndex(5)  # rwh hack/debug/default
+
 
         # self.reset_xml_root()
 
