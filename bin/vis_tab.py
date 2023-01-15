@@ -714,6 +714,7 @@ class Vis(QWidget):
             self.reset_model()
             self.reset_model_flag = False
 
+        # WARNING: do not assume we're in /tmpdir (as )
         print('cwd = ',os.getcwd())
         # print('self.output_dir = ',self.output_dir)
         # xml_file = Path(self.output_dir, "initial.xml")
@@ -1107,7 +1108,7 @@ class Vis(QWidget):
         # print("-- plot_svg:", full_fname) 
         if not os.path.isfile(full_fname):
             # print("Once output files are generated, click the slider.")   
-            print("plot_svg(): Warning: filename not found: ",full_fname)
+            print("vis_tab.py: plot_svg(): Warning: full_fname not found: ",full_fname)
             return
 
         # self.ax0.cla()

@@ -10,7 +10,8 @@ Dr. Paul Macklin (macklinp@iu.edu)
 
 import os
 import sys
-import getopt
+# import getopt
+import argparse
 import shutil
 import glob
 import zipfile
@@ -20,7 +21,7 @@ from xml.dom import minidom
 
 # from matplotlib.colors import TwoSlopeNorm
 
-# from PyQt5 import QtCore   # , QtGui
+from PyQt5 import QtGui   # , QtCore, QtGui
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import QProcess
 from PyQt5.QtGui import QPalette, QColor, QIcon, QFont
@@ -31,10 +32,11 @@ from populate_tree_cell_defs import populate_tree_cell_defs
 from cell_def_tab import CellDef 
 from microenv_tab import SubstrateDef 
 from user_params_tab import UserParams 
+from ics_tab import ICs 
+from rules_tab import Rules 
 from run_tab import RunModel 
 from vis_tab import Vis 
 from legend_tab import Legend 
-from rules_tab import Rules 
 
 class QHLine(QFrame):
     def __init__(self, sunken_flag):
@@ -55,10 +57,12 @@ def SingleBrowse(self):
 #class PhysiCellXMLCreator(QTabWidget):
 class PhysiCellXMLCreator(QWidget):
     # def __init__(self, parent = None):
-    def __init__(self, show_vis_flag, parent = None):
+    # ex = PhysiCellXMLCreator(vis_flag, config_file, skip_validate_flag, exec_file)
+    def __init__(self, show_vis_flag, config_file, skip_validate_flag, exec_file_flag, parent = None):
         super(PhysiCellXMLCreator, self).__init__(parent)
 
         # self.nanohub = True
+        self.studio_flag = True
         self.nanohub_flag = False
         if( 'HOME' in os.environ.keys() ):
             self.nanohub_flag = "home/nanohub" in os.environ['HOME']
@@ -98,42 +102,73 @@ class PhysiCellXMLCreator(QWidget):
         # self.file_menu.insertAction("Open")
         # self.menubar.addMenu(self.file_menu)
 
-        model_name = "rules_model1"
+        # model_name = "rules_model1"
+        model_name = "template"
 
         # then what??
         # binDirectory = os.path.realpath(os.path.abspath(__file__))
-        binDirectory = os.path.dirname(os.path.abspath(__file__))
-        dataDirectory = os.path.join(binDirectory,'..','data')
-        print("-------- dataDirectory (relative) =",dataDirectory)
-        self.absolute_data_dir = os.path.abspath(dataDirectory)
+        self.current_dir = os.getcwd()
+        print("self.current_dir = ",self.current_dir)
+        self.studio_root_dir = os.path.realpath(os.path.join(os.path.dirname(__file__), '..'))
+        self.studio_data_dir = os.path.realpath(os.path.join(os.path.dirname(__file__), '..', 'data'))
+        print("self.studio_root_dir = ",self.studio_root_dir)
+
+        # assume running from a PhysiCell root dir, but change if not
+        self.config_dir = os.path.realpath(os.path.join('.', 'config'))
+
+        if self.current_dir == self.studio_root_dir:  # are we running from Studio root dir?
+            self.config_dir = os.path.realpath(os.path.join(os.path.dirname(__file__), '..', 'data'))
+        print(f'self.config_dir =  {self.config_dir}')
+
+        #-----
+        # binDirectory = os.path.dirname(os.path.abspath(__file__))
+        # dataDirectory = os.path.join(binDirectory,'..','data')
+        # print("-------- dataDirectory (relative) =",dataDirectory)
+        # self.absolute_data_dir = os.path.abspath(dataDirectory)
+
+        self.absolute_data_dir = os.path.abspath(self.studio_data_dir)
         print("-------- absolute_data_dir =",self.absolute_data_dir)
 
         # NOTE: if your C++ needs to also have an absolute path to data dir, do so via an env var
         # os.environ['KIDNEY_DATA_PATH'] = self.absolute_data_dir
 
-        docDirectory = os.path.join(binDirectory,'..','doc')
+        # docDirectory = os.path.join(binDirectory,'..','doc')
+        docDirectory = os.path.join(self.studio_root_dir,'doc')
         self.absolute_doc_dir = os.path.abspath(docDirectory)
         print("-------- absolute_doc_dir =",self.absolute_doc_dir)
 
 
+        #--------------------------
+        if config_file:
+            self.current_xml_file = os.path.join(self.current_dir, config_file)
+            print("got config_file=",config_file)
+            # sys.exit()
+        else:
+            # model_name = "rules_model1"
+            model_name = "template"
+            read_file = os.path.join(self.absolute_data_dir, model_name + ".xml")
+            self.current_xml_file = os.path.join(self.studio_data_dir, model_name + ".xml")
+        #--------------------------
+
         # read_file = model_name + ".xml"
         # read_file = os.path.join(dataDirectory, model_name + ".xml")
-        read_file = os.path.join(self.absolute_data_dir, model_name + ".xml")
         # self.setWindowTitle(self.title_prefix + model_name)
 
 
-        # NOTE! We create a *copy* of the .xml sample model and will save to it.
-        copy_file = "copy_" + model_name + ".xml"
-        shutil.copy(read_file, copy_file)
         if self.nanohub_flag:
+            # NOTE! We create a *copy* of the .xml sample model and will save to it.
+            copy_file = "copy_" + model_name + ".xml"
+            shutil.copy(read_file, copy_file)
             # self.setWindowTitle(self.title_prefix + "pc4learning")
             self.setWindowTitle(self.title_prefix + copy_file)
+            self.config_file = copy_file  # to Save
         else:
-            self.setWindowTitle(self.title_prefix + copy_file)
+            # self.setWindowTitle(self.title_prefix + copy_file)
+            self.setWindowTitle(self.title_prefix + self.current_xml_file)
+            self.config_file = self.current_xml_file  # to Save
             # self.setWindowTitle(self.title_prefix + "pc4learning")
         # self.add_new_model(copy_file, True)
         # self.config_file = "config_samples/" + name + ".xml"
-        self.config_file = copy_file  # to Save
         print("-----  __init__():  self.config_file = ",self.config_file)
 
 
@@ -193,10 +228,32 @@ class PhysiCellXMLCreator(QWidget):
         self.user_params_tab.xml_root = self.xml_root
         self.user_params_tab.fill_gui()
 
+        self.ics_tab = ICs(self.config_tab, self.celldef_tab)
+        self.ics_tab.fill_celltype_combobox()
+        self.ics_tab.reset_info()
+        self.celldef_tab.ics_tab = self.ics_tab
+        # self.rules_tab.fill_gui()
+
+
         # self.rules_tab = Rules(self.absolute_doc_dir, self.nanohub_flag)
         self.rules_tab = Rules(self.microenv_tab, self.celldef_tab)
         self.rules_tab.xml_root = self.xml_root
         self.rules_tab.fill_gui()
+        # populate_tree_cell_defs(self.celldef_tab, self.rules_tab, self.skip_validate)
+        uep_cell_rules = self.xml_root.find(".//cell_definitions//cell_rules")
+        if uep_cell_rules:
+            rules_folder = uep_cell_rules.find(".//folder").text 
+            rules_file = uep_cell_rules.find(".//filename").text 
+            # logging.debug(f'------- studio.py: setting rules.csv folder = {rules_folder}')
+            # logging.debug(f'------- studio.py: setting rules.csv file = {rules_file}')
+            print(f'------- studio.py: setting rules.csv folder = {rules_folder}')
+            print(f'------- studio.py: setting rules.csv file = {rules_file}')
+            if rules_folder and rules_file:
+                full_path_rules_name =  os.path.realpath(os.path.join(self.studio_root_dir, rules_folder, rules_file))
+                print(f'------- studio.py: full_path_rules_name = {full_path_rules_name}')
+                self.rules_tab.fill_rules(full_path_rules_name)
+            else:
+                print(f'------- studio.py: WARNING: missing either rules_folder or rules_file.')
 
         self.tabWidget = QTabWidget()
 
@@ -207,6 +264,8 @@ class PhysiCellXMLCreator(QWidget):
         print("studio.py: self.homedir = ",self.homedir)
         self.run_tab.homedir = self.homedir
         self.run_tab.rules_tab = self.rules_tab
+        if not self.nanohub_flag:
+            self.run_tab.config_xml_name.setText(self.config_file)
         # self.run_tab.nanohub_flag = self.nanohub_flag
 
         # self.run_tab.xmin = 
@@ -231,8 +290,8 @@ class PhysiCellXMLCreator(QWidget):
         self.tabWidget.addTab(self.config_tab,"Config Basics")
         self.tabWidget.addTab(self.microenv_tab,"Microenvironment")
         self.tabWidget.addTab(self.celldef_tab,"Cell Types")
-        # self.tabWidget.addTab(self.cell_customdata_tab,"Cell Custom Data")
         self.tabWidget.addTab(self.user_params_tab,"User Params")
+        self.tabWidget.addTab(self.ics_tab,"ICs")
         self.tabWidget.addTab(self.rules_tab,"Rules")
         self.tabWidget.addTab(self.run_tab,"Run")
 
@@ -267,7 +326,7 @@ class PhysiCellXMLCreator(QWidget):
         else:
             self.tabWidget.setCurrentIndex(0)  # About
 
-        self.tabWidget.setCurrentIndex(5)  # rwh hack/debug/default
+        # self.tabWidget.setCurrentIndex(5)  # rwh hack/debug/default
 
 
         # self.reset_xml_root()
@@ -286,17 +345,43 @@ class PhysiCellXMLCreator(QWidget):
 
         #--------------
         file_menu = menubar.addMenu('&File')
-        file_menu.addAction("Save as mymodel.xml", self.save_as_cb)
+        # file_menu.addAction("Save as mymodel.xml", self.save_as_cb) 
 
-        if self.nanohub_flag:
+        if not self.nanohub_flag: 
+            # file_menu.addAction("New (template)", self.new_model_cb, QtGui.QKeySequence('Ctrl+n'))
+            file_menu.addAction("Open", self.open_as_cb, QtGui.QKeySequence('Ctrl+o'))
+            # file_menu.addAction("Save mymodel.xml", self.save_cb, QtGui.QKeySequence('Ctrl+s'))
+            file_menu.addAction("Save as", self.save_as_cb)
+            file_menu.addAction("Save", self.save_cb, QtGui.QKeySequence('Ctrl+s'))
+
+            #--------------
+            # export_menu = file_menu.addMenu("Export")
+
+            # simularium_act = QAction('Simularium', self)
+            # export_menu.addAction(simularium_act)
+            # simularium_act.triggered.connect(self.simularium_cb)
+            # if not self.studio_flag:
+            #     print("simularium_installed is ",simularium_installed)
+            #     export_menu.setEnabled(False)
+
+            # #--------------
+            # file_menu.addSeparator()
+            # samples_menu = file_menu.addMenu("Samples")
+
+            # template_act = QAction('template', self)
+            # samples_menu.addAction(template_act)
+            # template_act.triggered.connect(self.template_cb)
+
+            self.download_menu = None
+
+        # if self.nanohub_flag: 
+        else:  # rwh: temporary
             self.download_menu = file_menu.addMenu('Download')
             self.download_config_item = self.download_menu.addAction("Download config.xml", self.download_config_cb)
             self.download_svg_item = self.download_menu.addAction("Download SVG", self.download_svg_cb)
             self.download_mat_item = self.download_menu.addAction("Download binary (.mat) data", self.download_full_cb)
             # self.download_menu_item.setEnabled(False)
             self.download_menu.setEnabled(False)
-        else:
-            self.download_menu = None
 
         #-----
         # model_menu = menubar.addMenu('&Model')
@@ -431,9 +516,12 @@ class PhysiCellXMLCreator(QWidget):
         self.celldef_tab.clear_custom_data_params()
         # self.celldef_tab.populate_tree()
         populate_tree_cell_defs(self.celldef_tab, self.skip_validate)
+        # populate_tree_cell_defs(self.celldef_tab, self.rules_tab, self.skip_validate)
         # self.celldef_tab.fill_gui(None)
         # self.celldef_tab.customize_cycle_choices() #rwh/todo: needed? 
         self.celldef_tab.fill_substrates_comboboxes()
+        self.celldef_tab.fill_celltypes_comboboxes()
+
         self.microenv_tab.celldef_tab = self.celldef_tab
 
         # self.cell_customdata_tab.clear_gui(self.celldef_tab)
@@ -443,6 +531,14 @@ class PhysiCellXMLCreator(QWidget):
         self.user_params_tab.fill_gui()
 
         self.rules_tab.fill_gui()
+        uep_cell_rules = self.xml_root.find(".//cell_definitions//cell_rules")
+        if uep_cell_rules:
+            rules_folder = uep_cell_rules.find(".//folder").text 
+            rules_file = uep_cell_rules.find(".//filename").text 
+            # logging.debug(f'------- studio.py: setting rules.csv folder = {rules_folder}')
+            # logging.debug(f'------- studio.py: setting rules.csv file = {rules_file}')
+            print(f'------- studio.py: setting rules.csv folder = {rules_folder}')
+            print(f'------- studio.py: setting rules.csv file = {rules_file}')
 
         self.vis_tab.init_plot_range(self.config_tab)
         self.vis_tab.reset_model()
@@ -453,8 +549,51 @@ class PhysiCellXMLCreator(QWidget):
         self.tabWidget.setCurrentIndex(0)  # Config (default)
 
 
+    def show_sample_model(self):
+        # logging.debug(f'pmb: show_sample_model(): self.config_file = {self.config_file}')
+        print(f'studio.py: show_sample_model(): self.config_file = {self.config_file}')
+        # self.config_file = "config_samples/biorobots.xml"
+        self.tree = ET.parse(self.config_file)
+        # self.xml_root = self.tree.getroot()
+        self.reset_xml_root()
+        self.setWindowTitle(self.title_prefix + self.config_file)
+        # self.config_tab.fill_gui(self.xml_root)  # 
+        # self.microenv_tab.fill_gui(self.xml_root)  # microenv
+        # self.celldef_tab.fill_gui("foobar")  # cell defs
+        # self.celldef_tab.fill_motility_substrates()
+
+
+    def open_as_cb(self):
+        # filePath = QFileDialog.getOpenFileName(self,'',".",'*.xml')
+        filePath = QFileDialog.getOpenFileName(self,'',".")
+        # print("\n\nopen_as_cb():  filePath=",filePath)
+        full_path_model_name = filePath[0]
+        print("\n\nopen_as_cb():  full_path_model_name =",full_path_model_name )
+        # logging.debug(f'\npmb.py: open_as_cb():  full_path_model_name ={full_path_model_name}')
+        # if (len(full_path_model_name) > 0) and Path(full_path_model_name):
+        if (len(full_path_model_name) > 0) and Path(full_path_model_name).is_file():
+            print("open_as_cb():  filePath is valid")
+            # logging.debug(f'     filePath is valid')
+            print("len(full_path_model_name) = ", len(full_path_model_name) )
+            # logging.debug(f'     len(full_path_model_name) = {len(full_path_model_name)}' )
+            # fname = os.path.basename(full_path_model_name)
+            self.current_xml_file = full_path_model_name
+
+            # self.add_new_model(self.current_xml_file, True)
+            self.config_file = self.current_xml_file
+
+            # -- don't do this now; file is copied to tmpdir/config.xml
+            # if self.studio_flag:
+            #     self.run_tab.config_file = self.current_xml_file
+            #     self.run_tab.config_xml_name.setText(self.current_xml_file)
+            self.show_sample_model()
+
+        else:
+            print("open_as_cb():  full_path_model_name is NOT valid")
+
+    # Only valid for desktop, not on nanoHUB
     def save_as_cb(self):
-        # save_as_file = QFileDialog.getSaveFileName(self,'',".")
+        save_as_file = QFileDialog.getSaveFileName(self,'',".")
         # if save_as_file:
         #     print(save_as_file)
         #     print(" save_as_file: ",save_as_file) # writing to:  ('/Users/heiland/git/PhysiCell-model-builder/rwh.xml', 'All Files (*)')
@@ -464,7 +603,7 @@ class PhysiCellXMLCreator(QWidget):
         self.celldef_tab.fill_xml()
         self.user_params_tab.fill_xml()
 
-        save_as_file = "mymodel.xml"
+        # save_as_file = "mymodel.xml"
         print("studio.py:  save_as_cb: writing to: ",save_as_file) # writing to:  ('/Users/heiland/git/PhysiCell-model-builder/rwh.xml', 'All Files (*)')
         self.tree.write(save_as_file)
 
@@ -499,6 +638,7 @@ class PhysiCellXMLCreator(QWidget):
         self.microenv_tab.fill_xml()
         self.celldef_tab.fill_xml()
         self.user_params_tab.fill_xml()
+        self.rules_tab.fill_xml()
 
         # filePath = QFileDialog.getOpenFileName(self,'',".",'*.xml')
         # print("studio.py:  save_cb: writing to: ",self.config_file)
@@ -546,32 +686,69 @@ class PhysiCellXMLCreator(QWidget):
 
 def main():
     inputfile = ''
-    # show_vis_tab = False
-    show_vis_tab = True
+    # show_vis_tab = True
+    vis_flag = True
+    config_file = None
+    # model3D_flag = False
+    # rules_flag = True
+    skip_validate_flag = False
     try:
-        # opts, args = getopt.getopt(argv,"hi:o:",["ifile=","ofile="])
-        opts, args = getopt.getopt(sys.argv[1:],"hv:",["vis"])
-    except getopt.GetoptError:
-        # print 'test.py -i <inputfile> -o <outputfile>'
-        print('getopt exception')
-        sys.exit(2)
-    for opt, arg in opts:
-        if opt == '-h':
-        #  print 'test.py -i <inputfile> -o <outputfile>'
-            print('bin/gui4xml.py [--vis]')
-            sys.exit(1)
-    #   elif opt in ("-i", "--ifile"):
-        elif opt in ("--vis"):
-            show_vis_tab = True
-    # print 'Input file is "', inputfile
-    # print("show_vis_tab = ",show_vis_tab)
-    # sys.exit()
+        parser = argparse.ArgumentParser(description='PhysiCell Studio')
+
+        # parser.add_argument("-s", "--studio", "--Studio", help="include Studio tabs", action="store_true")
+        # parser.add_argument("-3", "--three", "--3D", help="assume a 3D model" , action="store_true")
+        # parser.add_argument("-r", "--rules", "--Rules", help="display Rules tab" , action="store_true")
+        parser.add_argument("-x", "--skip_validate", help="do not attempt to validate the config (.xml) file" , action="store_true")
+        parser.add_argument("-c", "--config",  type=str, help="config file (.xml)")
+        parser.add_argument("-e", "--exec",  type=str, help="executable model")
+
+        exec_file = 'project'  # for template sample
+
+        # args = parser.parse_args()
+        args, unknown = parser.parse_known_args()
+        if unknown:
+            print("invalid argument: ",unknown)
+            sys.exit(-1)
+
+        if args.skip_validate:
+            # logging.debug(f'studio.py: Do not validate the config file (.xml)')
+            skip_validate_flag = True
+
+        # print("args.config= ",args.config)
+        if args.config:
+            # logging.debug(f'studio.py: config file is {args.config}')
+            print(f'studio.py: config file is {args.config}')
+            # sys.exit()
+            config_file = args.config
+            # if (len(config_file) > 0) and Path(config_file).is_file():
+            #     logging.debug(f'studio.py: open_as_cb():  filePath is valid')
+            #     logging.debug(f'len(config_file) = {len(config_file)}')
+            #     logging.debug(f'done with args.config')
+            # else:
+            #     print(f'config_file is NOT valid: {args.config}')
+            #     logging.error(f'config_file is NOT valid: {args.config}')
+            #     sys.exit()
+
+        if args.exec:
+            # logging.debug(f'exec pgm is {args.exec}')
+            # sys.exit()
+            exec_file = args.exec
+            if (len(exec_file) > 0) and Path(exec_file).is_file():
+                print("exec_file exists")
+            else:
+                print("exec_file is NOT valid: ", args.exec)
+                sys.exit()
+    except:
+        print("Error parsing command line args.")
+        sys.exit(-1)
+
 
     studio_app = QApplication(sys.argv)
     icon_path = os.path.join(os.path.dirname(sys.modules[__name__].__file__), 'physicell_logo_200px.png')
     studio_app.setWindowIcon(QIcon(icon_path))
 
-    ex = PhysiCellXMLCreator(show_vis_tab)
+    # ex = PhysiCellXMLCreator(config_file, studio_flag, skip_validate_flag, rules_flag, model3D_flag, exec_file)
+    ex = PhysiCellXMLCreator(vis_flag, config_file, skip_validate_flag, exec_file)
     # ex.setGeometry(100,100, 800,600)
     ex.show()
     sys.exit(studio_app.exec_())

@@ -8,7 +8,7 @@ Dr. Paul Macklin (macklinp@iu.edu)
 import sys
 import os
 import csv
-import logging
+# import logging
 import xml.etree.ElementTree as ET  # https://docs.python.org/2/library/xml.etree.elementtree.html
 from pathlib import Path
 # import xml.etree.ElementTree as ET  # https://docs.python.org/2/library/xml.etree.elementtree.html
@@ -370,7 +370,7 @@ class Rules(QWidget):
         # header.setSectionResizeMode(8, QHeaderView.ResizeToContents)  # arg, don't work as expected
         # header.setSectionResizeMode(9, QHeaderView.ResizeToContents)
 
-        self.rules_table.setHorizontalHeaderLabels(['CellType','Behavior','Min val','Base val','Max val', 'Signal','Direction','Half-max','Hill power','Apply to dead'])
+        self.rules_table.setHorizontalHeaderLabels(['CellType','Behavior','Min','Base','Max', 'Signal','Direction','Half-max','Hill power','Apply to dead'])
 
         # Don't like the behavior these offer, e.g., locks down width of 0th column :/
         # header = self.rules_table.horizontalHeader()       
@@ -556,6 +556,8 @@ class Rules(QWidget):
                         # ['tumor', 'cycle entry', '0', '1.70E-05', '7.00E-04', 'oxygen', 'increases', '21.5', '4', '0']
                         # print("------ cell type= ",elm[0])
                         print("------ elm= ",elm)
+                        if elm[0][0] == "#":
+                            continue
                         # self.rules_table.setCellWidget(irow, self.custom_icol_name, w_varname)   # 1st col
                         for idx in range(9):  # hard-code for now :/
                             self.rules_table.cellWidget(irow, idx).setText(elm[idx])
@@ -573,11 +575,14 @@ class Rules(QWidget):
             # self.dialog_critical(str(e))
             # print("error opening config/cells_rules.csv")
                 print(f'rules_tab.py: Error opening or reading {full_rules_fname}')
+                self.show_warning(f'rules_tab.py: Error opening or reading {full_rules_fname}')
                 # logging.error(f'rules_tab.py: Error opening or reading {full_rules_fname}')
                 # sys.exit(1)
         else:
             print(f'\n\n!!!  WARNING: fill_rules(): {full_rules_fname} is not a valid file !!!\n')
-            logging.error(f'fill_rules(): {full_rules_fname} is not a valid file')
+            msg = "fill_rules(): " + full_rules_fname + " not valid"
+            self.show_warning(msg)
+            # logging.error(f'fill_rules(): {full_rules_fname} is not a valid file')
 
     # else:  # should empty the Rules tab
     #     self.rules_text.setPlainText("")
@@ -610,9 +615,10 @@ class Rules(QWidget):
             rule_str += '1'
         else:
             rule_str += '0'
-        print("---> ",rule_str)
+        print("add_rule_cb():---> ",rule_str)
 
         irow = self.num_rules
+        print("add_rule_cb():self.num_rules= ",self.num_rules)
         self.rules_table.cellWidget(irow, self.rules_celltype_idx).setText( self.celltype_dropdown.currentText() )
         self.rules_table.cellWidget(irow, self.rules_behavior_idx).setText( self.behavior_dropdown.currentText() )
         self.rules_table.cellWidget(irow, self.rules_minval_idx).setText( self.rule_min_val.text() )
@@ -628,6 +634,7 @@ class Rules(QWidget):
             self.rules_table.cellWidget(irow,self.rules_applydead_idx).setChecked(False)
 
         self.num_rules += 1
+        print("add_rule_cb(): post-incr, self.num_rules= ",self.num_rules)
 
         # self.rules_text.appendPlainText(rule_str)
         return
@@ -787,6 +794,8 @@ class Rules(QWidget):
         self.add_row_rules_table(self.max_rule_table_rows - 1)
         # self.enable_all_custom_data()
 
+        self.num_rules -= 1
+
         # print(" 2)master_custom_var_d= ",self.master_custom_var_d)
         # print("------------- LEAVING  delete_custom_data_cb")
 
@@ -795,7 +804,7 @@ class Rules(QWidget):
         # filePath = QFileDialog.getOpenFileName(self,'',".",'*.xml')
         filePath = QFileDialog.getOpenFileName(self,'',".")
         full_path_rules_name = filePath[0]
-        logging.debug(f'\nload_rules_cb():  full_path_rules_name ={full_path_rules_name}')
+        # logging.debug(f'\nload_rules_cb():  full_path_rules_name ={full_path_rules_name}')
         print(f'\nload_rules_cb():  full_path_rules_name ={full_path_rules_name}')
         basename = os.path.basename(full_path_rules_name)
         print(f'load_rules_cb():  basename ={basename}')
@@ -804,9 +813,9 @@ class Rules(QWidget):
         # if (len(full_path_rules_name) > 0) and Path(full_path_rules_name):
         if (len(full_path_rules_name) > 0) and Path(full_path_rules_name).is_file():
             print("load_rules_cb():  filePath is valid")
-            logging.debug(f'     filePath is valid')
+            # logging.debug(f'     filePath is valid')
             print("len(full_path_rules_name) = ", len(full_path_rules_name) )
-            logging.debug(f'     len(full_path_rules_name) = {len(full_path_rules_name)}' )
+            # logging.debug(f'     len(full_path_rules_name) = {len(full_path_rules_name)}' )
             self.rules_folder.setText(dirname)
             self.rules_file.setText(basename)
             # fname = os.path.basename(full_path_rules_name)
@@ -828,19 +837,78 @@ class Rules(QWidget):
     def save_rules_cb(self):
         folder_name = self.rules_folder.text()
         file_name = self.rules_file.text()
-        full_rules_fname = os.path.join(folder_name, file_name)
+        # full_rules_fname = os.path.join(folder_name, file_name)
+        full_rules_fname = os.path.abspath(os.path.join(".",folder_name, file_name))
         # if os.path.isfile(full_rules_fname):
         try:
             # with open("config/rules.csv", 'rU') as f:
             with open(full_rules_fname, 'w') as f:
                 # rules_text = self.rules_text.toPlainText()
                 # f.write(rules_text )
+                # print("rules_tab.py: save_rules_cb(): self.num_rules= ",self.num_rules)
+                for irow in range(self.num_rules):
+        # self.rules_celltype_idx = 0
+        # self.rules_behavior_idx = 1
+        # self.rules_minval_idx = 2
+        # self.rules_baseval_idx = 3
+        # self.rules_maxval_idx = 4
+        # self.rules_signal_idx = 5
+        # self.rules_direction_idx = 6
+        # self.rules_halfmax_idx = 7
+        # self.rules_hillpower_idx = 8
+        # self.rules_applydead_idx = 9
+                    rule_str = self.rules_table.cellWidget(irow, self.rules_celltype_idx).text()
+                    rule_str += ','
+                    rule_str += self.rules_table.cellWidget(irow, self.rules_behavior_idx).text()
+                    rule_str += ','
+                    rule_str += self.rules_table.cellWidget(irow, self.rules_minval_idx).text()
+                    rule_str += ','
+                    rule_str += self.rules_table.cellWidget(irow, self.rules_baseval_idx).text()
+                    rule_str += ','
+                    rule_str += self.rules_table.cellWidget(irow, self.rules_maxval_idx).text()
+                    rule_str += ','
+                    rule_str += self.rules_table.cellWidget(irow, self.rules_signal_idx).text()
+                    rule_str += ','
+                    rule_str += self.rules_table.cellWidget(irow, self.rules_direction_idx).text()
+                    rule_str += ','
+                    rule_str += self.rules_table.cellWidget(irow, self.rules_halfmax_idx).text()
+                    rule_str += ','
+                    rule_str += self.rules_table.cellWidget(irow, self.rules_hillpower_idx).text()
+                    rule_str += ','
+                    rule_str += '0'  # rwh: hack for now
+
+                    # rule_str = self.celltype_dropdown.currentText()
+                    # rule_str += ','
+                    # rule_str += self.behavior_dropdown.currentText()
+                    # rule_str += ','
+                    # rule_str += self.rule_min_val.text()
+                    # rule_str += ','
+                    # rule_str += self.rule_base_val.text()
+                    # rule_str += ','
+                    # rule_str += self.rule_max_val.text()
+                    # rule_str += ','
+                    # rule_str += self.signal_dropdown.currentText()
+                    # rule_str += ','
+                    # rule_str += self.up_down_dropdown.currentText()
+                    # rule_str += ','
+                    # rule_str += self.rule_half_max.text()
+                    # rule_str += ','
+                    # rule_str += self.rule_hill_power.text()
+                    # rule_str += ','
+                    # if self.dead_cells_checkbox.isChecked():
+                    #     rule_str += '1'
+                    # else:
+                    #     rule_str += '0'
+                    # print(rule_str)
+                    f.write(rule_str)
+                f.close()
                 print(f'rules_tab.py: Wrote rules to {full_rules_fname}')
+
         except Exception as e:
         # self.dialog_critical(str(e))
         # print("error opening config/cells_rules.csv")
             print(f'rules_tab.py: Error writing {full_rules_fname}')
-            logging.error(f'rules_tab.py: Error writing {full_rules_fname}')
+            # logging.error(f'rules_tab.py: Error writing {full_rules_fname}')
                 # sys.exit(1)
         # else:
             # print(f'\n\n!!!  WARNING: fill_rules(): {full_rules_fname} is not a valid file !!!\n')
@@ -876,7 +944,7 @@ class Rules(QWidget):
             else:
                 substrates.append(key)
 
-        #----- behaviors
+        #----- behaviors  (rwh TODO: add dict for default params for each entry)
         for s in substrates:
             self.behavior_dropdown.addItem(s + " secretion")
         for s in substrates:
@@ -948,6 +1016,21 @@ class Rules(QWidget):
             print(f'rules_tab.py: fill_gui():  folder_name =  {folder_name}')
             self.rules_folder.setText(folder_name)
             file_name = self.xml_root.find(".//cell_definitions//cell_rules//filename").text
+            print(f'rules_tab.py: fill_gui():  file_name =  {file_name}')
+            if folder_name == None or file_name == None:
+                msg = "rules_tab.py: "
+                if folder_name == None:
+                    msg += "rules folder "
+                if folder_name == None:
+                    msg += " rules file "
+                msg += " missing from .xml"
+                self.show_warning(msg)
+
+                self.rules_folder.setText("")
+                self.rules_file.setText("")
+                self.rules_enabled.setChecked(False)
+                return
+
             self.rules_file.setText(file_name)
             full_rules_fname = os.path.join(folder_name, file_name)
 
@@ -1019,3 +1102,14 @@ class Rules(QWidget):
 
         return
     
+    def show_warning(self, msg):
+        msgBox = QMessageBox()
+        msgBox.setIcon(QMessageBox.Information)
+        msgBox.setText(msg)
+        #    msgBox.setWindowTitle("Example")
+        msgBox.setStandardButtons(QMessageBox.Ok)
+        # msgBox.buttonClicked.connect(msgButtonClick)
+
+        returnValue = msgBox.exec()
+        # if returnValue == QMessageBox.Ok:
+            # print('OK clicked')

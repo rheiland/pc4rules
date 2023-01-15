@@ -69,11 +69,11 @@ class Legend(QWidget):
         self.layout.addWidget(self.scroll)
 
     def reload_legend(self):
-        print('reload_legend(): cwd = self.output_dir = ',os.getcwd())
+        print('---------reload_legend(): cwd = self.output_dir = ',os.getcwd())
         self.output_dir = os.getcwd()
-        print('self.output_dir = ',self.output_dir)
+        print('          self.output_dir = ',self.output_dir)
 
-        for idx in range(20):
+        for idx in range(6):
             print("waiting for creation of legend.svg ...",idx)
             path = Path("legend.svg")
             if path.is_file():

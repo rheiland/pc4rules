@@ -89,18 +89,21 @@ class RunModel(QWidget):
         hbox.addWidget(QLabel("Exec:"))
         self.exec_name = QLineEdit()
         if self.nanohub_flag:
-            self.exec_name.setText('rules')
+            self.exec_name.setText('rules_model')
             # self.exec_name.setEnabled(False)
         else:
             # self.exec_name.setText('../myproj')
-            self.exec_name.setText('../rules')
+            self.exec_name.setText('rules_model')
         hbox.addWidget(self.exec_name)
 
         hbox.addWidget(QLabel("Config:"))
         self.config_xml_name = QLineEdit()
         # self.config_xml_name.setText('mymodel.xml')
         # self.config_xml_name.setText('copy_PhysiCell_settings.xml')
-        self.config_xml_name.setText('config.xml')
+        if self.nanohub_flag:
+            self.config_xml_name.setText('config.xml')
+        else:
+            self.config_xml_name.setText('data/template.xml')
         hbox.addWidget(self.config_xml_name)
 
         # self.vbox.addStretch()
@@ -170,6 +173,7 @@ class RunModel(QWidget):
         if True: # copy normal workflow of an app, strange as it is
             # make sure we are where we started (app's root dir)
             os.chdir(self.homedir)
+            print("run_tab.py:  chdir to homedir= ",self.homedir)
 
             # remove any previous data
             # NOTE: this dir name needs to match the <folder>  in /data/<config_file.xml>
@@ -185,6 +189,7 @@ class RunModel(QWidget):
             # new_config_file = "tmpdir/config.xml"  # use Path; work on Windows?
             tdir = os.path.abspath('tmpdir')
             new_config_file = Path(tdir,"config.xml")
+            print("run_tab.py:  new_config_file = ",new_config_file )
 
             # write_config_file(new_config_file)  
             # update the .xml config file
@@ -199,8 +204,12 @@ class RunModel(QWidget):
             self.tree.write(new_config_file)  # saves modified XML to tmpdir/config.xml 
 
             # Operate from tmpdir. XML: <folder>,</folder>; temporary output goes here.  May be copied to cache later.
-            tdir = os.path.abspath('tmpdir')
-            os.chdir(tdir)   # run exec from here on nanoHUB
+            # tdir = os.path.abspath('tmpdir')
+            # print("run_tab.py: chdir to ",tdir)
+            # if self.nanohub_flag:
+                # os.chdir(tdir)   # run exec from tmpdir on nanoHUB (but from root on desktop!)
+            os.chdir(tdir)   # run exec from output dir (e.g., /tmpdir on nanoHUB)
+            print("run_tab.py:  chdir to tdir= ",tdir)
 
         auto_load_params = True
         # if auto_load_params:
@@ -247,7 +256,12 @@ class RunModel(QWidget):
                 self.p.start("submit",["--local",exec_str,xml_str])
             else:
                 logging.debug(f'\nrun_tab.py: running: {exec_str}, {xml_str}')
-                self.p.start(exec_str, [xml_str])
+                exec_str_rel = os.path.join('..',exec_str)
+                xml_str_abs = os.path.abspath(os.path.join('..',xml_str))
+                # print(f'\nrun_tab.py: running: {exec_str}, {xml_str}')
+                print(f'\nrun_tab.py: running: {exec_str_rel}, {xml_str_abs}')
+                # self.p.start(exec_str, [xml_str])
+                self.p.start(exec_str_rel, [xml_str_abs])
 
                 # print("\n\nrun_tab.py: running: ",exec_str," output/config.xml")
                 # self.p.start(exec_str, ["output/config.xml"])

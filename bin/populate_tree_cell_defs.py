@@ -56,11 +56,17 @@ def validate_cell_defs(cell_defs_elm, skip_validate):
     logging.debug(f'=======================  end validate_cell_defs(): =======================\n\n')
 
 
+# def populate_tree_cell_defs(cell_def_tab, rules_tab, skip_validate):
 def populate_tree_cell_defs(cell_def_tab, skip_validate):
     logging.debug(f'=======================  populate_tree_cell_defs(): ======================= ')
     logging.debug(f'    cell_def_tab.param_d = {cell_def_tab.param_d}')
     # cell_def_tab.master_custom_varname.clear()
     cell_def_tab.master_custom_var_d.clear()
+
+    cell_def_tab.param_d.clear()
+
+    # self.param_d[cdname]["cell_adhesion_affinity"]
+    cell_def_tab.cell_adhesion_affinity_celltype = None   # need to reset it!
 
     uep = cell_def_tab.xml_root.find(".//cell_definitions")
     validate_cell_defs(uep, skip_validate)
@@ -73,7 +79,8 @@ def populate_tree_cell_defs(cell_def_tab, skip_validate):
             # <cell_definition name="default" ID="0">
             logging.debug(f'----- cell_def.tag= {cell_def.tag}')
             if cell_def.tag == "cell_rules":
-                logging.debug(f'-------- found cell_rules child; break out on {cell_def}')
+                # logging.debug(f'-------- found cell_rules child; break out on {cell_def}')
+                logging.debug(f'populate_tree_cell_defs.py(): -------- found cell_rules child; break out on {cell_def}')
                 break
             cell_def_tab.new_cell_def_count += 1
             # print(cell_def.attrib['name'])
@@ -1486,6 +1493,8 @@ def populate_tree_cell_defs(cell_def_tab, skip_validate):
         rules_file = uep_cell_rules.find(".//filename").text 
         logging.debug(f'------- populate_tree_cell_defs.py: setting rules.csv folder = {rules_folder}')
         logging.debug(f'------- populate_tree_cell_defs.py: setting rules.csv file = {rules_file}')
+        print(f'------- populate_tree_cell_defs.py: setting rules.csv folder = {rules_folder}')
+        print(f'------- populate_tree_cell_defs.py: setting rules.csv file = {rules_file}')
 
     # print("\n\n=======================  leaving cell_def populate_tree  ======================= ")
     # print()

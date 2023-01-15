@@ -6078,9 +6078,10 @@ class CellDef(QWidget):
 
         # self.param_d[cdname]['cell_adhesion_affinity'][cdname2] = '1.0'  # default affinity
         if self.cell_adhesion_affinity_celltype:
-            logging.debug(f'key 0= {self.cell_adhesion_affinity_celltype}')
-            logging.debug(f'keys 1= {self.param_d.keys()}')
-            logging.debug(f'keys 2= {self.param_d[cdname]["cell_adhesion_affinity"].keys()}')
+            # logging.debug(f'key 0= {self.cell_adhesion_affinity_celltype}')
+            print(f'\nkey 0= {self.cell_adhesion_affinity_celltype}')
+            print(f'\nkeys 1= {self.param_d.keys()}')
+            print(f'\nkeys 2= {self.param_d[cdname]["cell_adhesion_affinity"].keys()}')
             self.cell_adhesion_affinity.setText(self.param_d[cdname]["cell_adhesion_affinity"][self.cell_adhesion_affinity_celltype])
 
         self.set_relative_equilibrium_distance.setText(self.param_d[cdname]["mechanics_relative_equilibrium_distance"])

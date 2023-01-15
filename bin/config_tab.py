@@ -406,7 +406,8 @@ class Config(QWidget):
         else:
             self.xml_root.find(".//initial_conditions//cell_positions").attrib['enabled'] = 'false'
 
-        self.xml_root.find(".//initial_conditions//cell_positions/folder").text = ''
+        # rwh: TODO: resolve the location of the folder (and filename) for the cells .csv
+        self.xml_root.find(".//initial_conditions//cell_positions/folder").text = '..'
         # if self.csv_rb1.isChecked():
         #     self.xml_root.find(".//initial_conditions//cell_positions/filename").text = 'all_cells.csv'
         # else:
