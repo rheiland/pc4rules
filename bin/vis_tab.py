@@ -715,7 +715,7 @@ class Vis(QWidget):
             self.reset_model_flag = False
 
         # WARNING: do not assume we're in /tmpdir (as )
-        print('cwd = ',os.getcwd())
+        # print('vis_tab.py: cwd = ',os.getcwd())
         # print('self.output_dir = ',self.output_dir)
         # xml_file = Path(self.output_dir, "initial.xml")
         # xml_files = glob.glob('tmpdir/output*.xml')
