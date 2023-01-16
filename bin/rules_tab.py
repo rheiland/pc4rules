@@ -112,18 +112,22 @@ class Rules(QWidget):
         # hbox1.addWidget(QLabel("                 "))
         # hlayout.addWidget(QLabel("                 "))
 
-        label = QLabel("Cell Type:")
-        label.setAlignment(QtCore.Qt.AlignRight)
+        label = QLabel("Cell Type")
+        label.setFixedWidth(60)
+        # label.setAlignment(QtCore.Qt.AlignRight)
+        label.setAlignment(QtCore.Qt.AlignCenter)
         # label.setFixedHeight(25)
 
         # label.setFixedWidth(300)
-        hlayout.addWidget(label,1)
+        # hlayout.addWidget(label,1)
+        hlayout.addWidget(label)
 
         self.celltype_dropdown = QComboBox()
         # self.celltype_dropdown.setFixedWidth(300)
         # self.celltype_dropdown.setAlignment(QtCore.Qt.AlignLeft)
         # hlayout.addWidget(self.celltype_dropdown,1) # w, expand, align
-        hlayout.addWidget(self.celltype_dropdown, 0) # w, expand, align
+        # hlayout.addWidget(self.celltype_dropdown, 0) # w, expand, align
+        hlayout.addWidget(self.celltype_dropdown) # w, expand, align
         # hlayout.addWidget(self.celltype_dropdown,0,Qt.AlignLeft) # w, expand, align
         # hlayout.addLayout(hbox1,1) # w, expand, align
         # hlayout.addLayout(hbox1,0) # w, expand, align
@@ -253,63 +257,85 @@ class Rules(QWidget):
         # self.rules_tab_layout.addWidget(rules_table) 
         # self.rules_tab_layout.addWidget(self.rules_table) 
 
+        #----------------------
+        hlayout = QHBoxLayout()
+
         delete_rule_btn = QPushButton("Delete rule")
         delete_rule_btn.setFixedWidth(150)
         # delete_rule_btn.setAlignment(QtCore.Qt.AlignLeft)
         delete_rule_btn.clicked.connect(self.delete_rule_cb)
         delete_rule_btn.setStyleSheet("background-color: yellow")
-        # hlayout.addWidget(delete_rule_btn)
-        self.rules_tab_layout.addWidget(delete_rule_btn) 
+        hlayout.addWidget(delete_rule_btn)
 
+        self.validate_button = QPushButton("Validate all")
+        self.validate_button.setEnabled(False)
+        self.validate_button.setFixedWidth(150)
+        self.validate_button.setStyleSheet("background-color: lightgreen")
+        self.validate_button.clicked.connect(self.validate_rules_cb)
+        hlayout.addWidget(self.validate_button) 
+
+        self.rules_tab_layout.addLayout(hlayout) 
         #----------------------
         hlayout = QHBoxLayout()
 
         groupbox = QGroupBox()
-        hbox = QHBoxLayout()
-        groupbox.setLayout(hbox)
+        # hbox = QHBoxLayout()
+        # groupbox.setLayout(hbox)
+        groupbox.setLayout(hlayout)
+        # person_groupbox.setLayout(form_layout)
+
 
         self.load_rules_button = QPushButton("Load rules (.csv)")
         self.load_rules_button.setFixedWidth(170)
         # print("Load button.size= ",self.load_rules_button.size())
         self.load_rules_button.setStyleSheet("background-color: lightgreen")
         self.load_rules_button.clicked.connect(self.load_rules_cb)
-        # hlayout.addWidget(self.load_rules_button) 
-        hbox.addWidget(self.load_rules_button) 
+        hlayout.addWidget(self.load_rules_button) 
+        # hbox.addWidget(self.load_rules_button) 
 
-        label = QLabel("folder")
-        label.setFixedWidth(60)
-        label.setAlignment(QtCore.Qt.AlignRight)
-        hbox.addWidget(label) 
-        self.rules_folder = QLineEdit()
-        self.rules_folder.setFixedWidth(200)
-        hbox.addWidget(self.rules_folder) 
-
-        label = QLabel("file")
-        label.setFixedWidth(60)
-        label.setAlignment(QtCore.Qt.AlignRight)
-        hbox.addWidget(label) 
-        self.rules_file = QLineEdit()
-        self.rules_file.setFixedWidth(200)
-        hbox.addWidget(self.rules_file) 
-
-        # hlayout.addLayout(hbox) 
-        hlayout.addWidget(groupbox) 
-        groupbox.setStyleSheet("QGroupBox { border: 1px solid black;}")
-
-        #-------
-        self.validate_button = QPushButton("Validate")
-        self.validate_button.setFixedWidth(100)
-        self.validate_button.setStyleSheet("background-color: lightgreen")
-        self.validate_button.clicked.connect(self.save_rules_cb)
-        hlayout.addWidget(self.validate_button) 
-
-        self.save_button = QPushButton("Save")
+        self.save_button = QPushButton("Save rules")
         self.save_button.setFixedWidth(100)
         self.save_button.setStyleSheet("background-color: lightgreen")
         self.save_button.clicked.connect(self.save_rules_cb)
+        # hbox.addWidget(self.save_button) 
         hlayout.addWidget(self.save_button) 
 
-        self.rules_tab_layout.addLayout(hlayout) 
+        hbox1 = QHBoxLayout()
+        label = QLabel("folder")
+        label.setFixedWidth(40)
+        # label.setAlignment(QtCore.Qt.AlignRight)
+        label.setAlignment(QtCore.Qt.AlignCenter)
+        hbox1.addWidget(label) 
+        self.rules_folder = QLineEdit()
+        self.rules_folder.setFixedWidth(200)
+        # self.rules_folder.setAlignment(QtCore.Qt.AlignLeft)
+        hbox1.addWidget(self.rules_folder) 
+        hlayout.addLayout(hbox1) 
+
+        hbox2 = QHBoxLayout()
+        label = QLabel("file")
+        label.setFixedWidth(20)
+        label.setAlignment(QtCore.Qt.AlignRight)
+        label.setAlignment(QtCore.Qt.AlignCenter)
+        hbox2.addWidget(label) 
+        self.rules_file = QLineEdit()
+        self.rules_file.setFixedWidth(200)
+        hbox2.addWidget(self.rules_file) 
+        hlayout.addLayout(hbox2) 
+
+        # hlayout.addLayout(hbox) 
+        # hlayout.addWidget(groupbox) 
+        groupbox.setStyleSheet("QGroupBox { border: 1px solid black;}")
+
+        #-------
+        # self.save_button = QPushButton("Save")
+        # self.save_button.setFixedWidth(100)
+        # self.save_button.setStyleSheet("background-color: lightgreen")
+        # self.save_button.clicked.connect(self.save_rules_cb)
+        # hlayout.addWidget(self.save_button) 
+
+        # self.rules_tab_layout.addLayout(hlayout) 
+        self.rules_tab_layout.addWidget(groupbox) 
 
         self.rules_enabled = QCheckBox("enable")
         self.rules_tab_layout.addWidget(self.rules_enabled) 
@@ -832,6 +858,10 @@ class Rules(QWidget):
 
         else:
             print("load_rules_cb():  full_path_model_name is NOT valid")
+
+    #-----------------------------------------------------------
+    def validate_rules_cb(self):
+        return
 
     #-----------------------------------------------------------
     def save_rules_cb(self):
