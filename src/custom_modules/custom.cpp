@@ -177,33 +177,11 @@ void setup_tissue( void )
 	double Xrange = Xmax - Xmin; 
 	double Yrange = Ymax - Ymin; 
 	double Zrange = Zmax - Zmin; 
-
-	double Xmiddle = 0.5*(Xmin+Xmax);
-	double Ymiddle = 0.5*(Ymin+Ymax);
-	double Zmiddle = 0.5*(Zmin+Zmax);
-
-	std::vector<double> center = {Xmiddle,Ymiddle,Zmiddle}; 
-
-	double radius = std::min( Xrange, Yrange ); 
-	if( Zrange > microenvironment.mesh.dz - 1e-5 )
-	{ radius = std::min( radius, Zrange ); }
-	radius *= 0.5; 
 	
 	// create some of each type of cell 
 	
 	Cell* pC;
-
-	double r1_default = 0; 
-	double r2_default = radius; 
-
-	std::string optional_parameter_name = "min_position_cells"; 
-	if( parameters.doubles.find_index(optional_parameter_name) > -1 )
-	{ r1_default = parameters.doubles(optional_parameter_name); }
-
-	optional_parameter_name = "max_position_cells"; 
-	if( parameters.doubles.find_index(optional_parameter_name) > -1 )
-	{ r2_default = parameters.doubles(optional_parameter_name); }
-
+	
 	for( int k=0; k < cell_definitions_by_index.size() ; k++ )
 	{
 		Cell_Definition* pCD = cell_definitions_by_index[k]; 
@@ -212,42 +190,22 @@ void setup_tissue( void )
 
 		// optional: number_of_{cell type X} : number of cells of this particular type 
 
-		optional_parameter_name = "number_of_" + pCD->name; 
+		std::string optional_parameter_name = "number_of_" + pCD->name; 
 		spaces_to_underscore( optional_parameter_name ); 
 		if( parameters.ints.find_index(optional_parameter_name) > -1 )
 		{ number_of_cells = parameters.ints(optional_parameter_name); }
 
-		std::cout << "Placing " << number_of_cells << " cells of type " << pCD->name; 
-
-		double r1 = r1_default; 
-		optional_parameter_name = "min_position_" + pCD->name; 
-		spaces_to_underscore( optional_parameter_name ); 
-		if( parameters.doubles.find_index(optional_parameter_name) > -1 )
-		{ r1 = parameters.doubles(optional_parameter_name); }
-
-		double r2 = r2_default; 
-		optional_parameter_name = "max_position_" + pCD->name; 
-		spaces_to_underscore( optional_parameter_name ); 
-		if( parameters.doubles.find_index(optional_parameter_name) > -1 )
-		{ r2 = parameters.doubles(optional_parameter_name); }
-
-		std::cout << " between " << r1 << " and " << r2 << " microns ... " << std::endl; 
+		std::cout << "Placing " << number_of_cells << " cells of type " << pCD->name << " ... " << std::endl; 
 
 		for( int n = 0 ; n < number_of_cells ; n++ )
 		{
-			std::vector<double> position; 
-			if( default_microenvironment_options.simulate_2D )
-			{ position = UniformInAnnulus( r1, r2); }
-			else
-			{ position = UniformInShell( r1, r2); }
+			// 
 
-			position += center; 
-			/*
+			std::vector<double> position = {0,0,0}; 
 			position[0] = Xmin + UniformRandom()*Xrange; 
 			position[1] = Ymin + UniformRandom()*Yrange; 
 			position[2] = Zmin + UniformRandom()*Zrange; 
-			*/
-
+			
 			pC = create_cell( *pCD ); 
 			pC->assign_position( position );
 		}
@@ -1073,7 +1031,6 @@ void apply_ruleset( Cell* pCell )
 
 void rule_phenotype_function( Cell* pCell, Phenotype& phenotype, double dt )
 {
-    std::cout << "------- custom.cpp: rule_phenotype_function()\n";
 	apply_ruleset( pCell );
 
 	// safety checks for dead cells 
@@ -1483,74 +1440,11 @@ void save_annotated_English_rules_HTML( void )
 	of.close(); 
 }
 
-std::vector<double> UniformInUnitDisc( void )
-{
-	static double two_pi = 6.283185307179586; 
-	double theta = UniformRandom(); // U(0,1)
-	theta *= two_pi; // U(0,2*pi)
-	double r = sqrt( UniformRandom() );  // sqrt( U(0,1) )
-	return { r*cos(theta), r*sin(theta), 0.0 }; 
-}
 
-std::vector<double> UniformInUnitSphere( void )
-{
-	// reference: https://doi.org/10.1063/1.168311, adapting equation 13
 
-	static double two_pi = 6.283185307179586; 
 
-    double T = UniformRandom(); 
-	double sqrt_T = sqrt(T); 
-	double sqrt_one_minus_T = 1.0;
-	sqrt_one_minus_T -= T; 
-	sqrt_one_minus_T = sqrt( sqrt_one_minus_T ); 
 
-	double param1 = pow( UniformRandom() , 0.33333333333333333333333333333333333333 );  //  xi^(1/3), 
-    double param2 = param1; // xi^(1/3)
-	param2 *= 2.0; // 2 * xi^(1/3)
-	param2 *= sqrt_T; // 2 * xi(1) * T^(1/2)
-	param2 *= sqrt_one_minus_T; //  2 * xi(1) * T^(1/2) * (1-T)^(1/2)
-	
-    double theta = UniformRandom(); // U(0,1)
-	theta *= two_pi; // U(0,2*pi)
-	
-	return { param2*sin(theta) , param2*cos(theta), param1*(1-2*T) }; 
-}
 
-std::vector<double> UniformInAnnulus( double r1, double r2 )
-{
-	static double two_pi = 6.283185307179586; 
 
-    double theta = UniformRandom(); 
-	theta *= two_pi; 
-	double r1_2 = r1*r1; 
-	double r2_2 = r2*r2; 
 
-    double r = sqrt( r1_2 + (r2_2-r1_2) * UniformRandom() ); 
-    double x = r*cos(theta); 
-    double y = r*sin(theta); 
-    return {x,y,0.0}; 
-}
 
-std::vector<double> UniformInShell( double r1, double r2 )
-{
-	static double two_pi = 6.283185307179586; 
-
-    double T = UniformRandom(); 
-	double sqrt_T = sqrt(T); 
-	double sqrt_one_minus_T = 1.0;
-	sqrt_one_minus_T -= T; 
-	sqrt_one_minus_T = sqrt( sqrt_one_minus_T ); 
-
-	double param1 = pow( UniformRandom() , 0.33333333333333333333333333333333333333 );  //  xi^(1/3), 
-	// param1 *= (r2-r1); 
-	// param1 += r1; 
-    double param2 = param1; // xi^(1/3)
-	param2 *= 2.0; // 2 * xi^(1/3)
-	param2 *= sqrt_T; // 2 * xi(1) * T^(1/2)
-	param2 *= sqrt_one_minus_T; //  2 * xi(1) * T^(1/2) * (1-T)^(1/2)
-	
-    double theta = UniformRandom(); // U(0,1)
-	theta *= two_pi; // U(0,2*pi)
-	
-	return { param2*sin(theta) , param2*cos(theta), param1*(1-2*T) }; 
-}

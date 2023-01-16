@@ -242,13 +242,3 @@ void save_annotated_detailed_English_rules_HTML( void );
 
 
 void spaces_to_underscore( std::string& str );
-
-// add to core in future PhysiCell release: 
-
-std::vector<double> UniformInUnitDisc( void );
-std::vector<double> UniformInUnitSphere( void );
-
-std::vector<double> UniformInAnnulus( double r1, double r2 );
-std::vector<double> UniformInShell( double r1, double r2 );
-
-
