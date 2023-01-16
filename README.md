@@ -8,33 +8,25 @@ signal{Y} promotes/inhibits/is neutral to {behavior} in cell type{X}
 
 {X}, {behavior}, {Y}, ...
 ```
-or,
+or, e.g.,
+
+"tumor cell: oxygen increases cycle entry from 1.7e-05 towards 0.0007 with a Hill response, with half-max 21.5 and Hill power 4"
 
 
-e.g.,
-
-tumor cell: oxygen increases cycle entry from 1.7e-05 towards 0.0007 with a Hill response, with half-max 21.5 and Hill power 4.
-
-Compile (all provided sample models), copy the executable(s) you want to run to the root directory, run the Studio:
+Compile, move the executable, run the Studio:
 ```
 cd pc4rules/src
 make
 
-# move the executables into the root folder
-mv biorobots ..
-mv celltypes ..
-mv pred_prey ..
-mv interactions ..
+# move the executable into the root folder
+mv rules ..
 
-# Change directory to the root dir and run the GUI from there
+# Change directory to the root dir and run the Studio from there
 cd ..
-python bin/pmb.py --studio --rules -c data/rules_model1.xml
-
-(previously/future simplify: python bin/studio.py)
+python bin/studio.py
 ```
 
 In the Studio:
-* select the model to test from the `Model` menu
-* in the Run tab, click `Run Simulation`. Note: on nanoHUB, the simulation is run *from* the `tmpdir` directory and that's where all output files will be written.
+* in the Run tab, click `Run Simulation`. Note: both locally and on nanoHUB, the simulation is run *from* the `tmpdir` directory and that's where all output files will be written. The `tmpdir` is also where the [edited] config file is copied and renamed `config.xml`. Therefore the original config file needs to specify the save output folder is "."
 * in the Plot tab, click `Play`.
 * edit params if you want then repeat: Run, Play.
