@@ -19,7 +19,7 @@ cd pc4rules/src
 make
 
 # move the executable into the root folder
-mv rules ..
+mv rules_model ..
 
 # Change directory to the root dir and run the Studio from there
 cd ..

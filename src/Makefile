@@ -1,5 +1,5 @@
 VERSION := $(shell grep . VERSION.txt | cut -f1 -d:)
-PROGRAM_NAME := rules
+PROGRAM_NAME := rules_model
 
 CC := g++
 
