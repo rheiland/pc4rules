@@ -32,6 +32,7 @@ try:
   from matplotlib.collections import PatchCollection
   from matplotlib.colors import BoundaryNorm
   from matplotlib.ticker import MaxNLocator
+  from matplotlib import colors as mcolors
 except:
   print("\n---Error: cannot import matplotlib")
   print("---Try: python -m pip install matplotlib")
@@ -291,7 +292,13 @@ def plot_pressure():
 #   circles(xvals,yvals, s=rvals, color=rgbs)
 #   circles(xvals,yvals, s=rvals, color=rgbs)
 #   circles(xvals,yvals, s=2)
-  my_plot = circles(xvals,yvals, s=cell_radii, color="white", edgecolor='black', linewidth=0.5)
+#   facecolors = [cm.jet(x) for x in np.random.rand(num_cells)]
+#   facecolors = [plt.cm.viridis(x) for x in np.random.rand(num_cells)]
+#   print("facecolors=",facecolors)
+#   cvals = np.random.rand(num_cells)
+#   my_plot = circles(xvals,yvals, s=cell_radii, color="white", edgecolor='black', linewidth=0.5)
+#   my_plot = circles(xvals,yvals, s=cell_radii, facecolors=facecolors, edgecolor='black', linewidth=0.5)
+  my_plot = circles(xvals,yvals, s=cell_radii, c=cell_pressure, edgecolor='black', linewidth=0.5)
 
 #   cmap = plt.cm.hot
   if True:
