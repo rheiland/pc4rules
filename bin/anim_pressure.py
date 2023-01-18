@@ -30,6 +30,8 @@ try:
   import matplotlib.colors as mplc
   from matplotlib.patches import Circle, Ellipse, Rectangle
   from matplotlib.collections import PatchCollection
+  from matplotlib.colors import BoundaryNorm
+  from matplotlib.ticker import MaxNLocator
 except:
   print("\n---Error: cannot import matplotlib")
   print("---Try: python -m pip install matplotlib")
@@ -120,7 +122,7 @@ array([[ 4900.  ,  4900.  ],
        [ 4960.75,  4148.02]])
 """
 
-fig = plt.figure(figsize=(7,7))
+fig = plt.figure(figsize=(9,7))
 ax = fig.gca()
 #ax.set_aspect("equal")
 
@@ -128,6 +130,8 @@ ax = fig.gca()
 #plt.ion()
 
 time_delay = 0.1
+
+cbar = None
 
 count = -1
 #while True:
@@ -208,7 +212,7 @@ def circles(x, y, s, c='b', vmin=None, vmax=None, **kwargs):
 
 #-----------------------------------------------------
 def plot_pressure():
-  global current_idx, axes_max
+  global current_idx, axes_max, cbar
 #   fname = "snapshot%08d.svg" % current_idx
   fname = "output%08d.xml" % current_idx
   print("--------- plot_pressure(): fname = ",fname)
@@ -217,12 +221,16 @@ def plot_pressure():
 #     print("File does not exist: ",fname)
 #     return
 
+
   mcds = pyMCDS(fname, '../tmpdir', microenv=False, graph=False, verbose=True)
   total_min = mcds.get_time()
   print("    time=",total_min)
   cell_pressure = mcds.get_cell_df()['pressure']
   num_cells = len(cell_pressure)
   print("  len(cell_pressure) = ",len(cell_pressure))
+  vmin = cell_pressure.min()
+  vmax = cell_pressure.max()
+  fix_cmap = 0
   print(f'   cell_pressure.min(), max() = {cell_pressure.min()}, {cell_pressure.max()}')
   cell_vol = mcds.get_cell_df()['total_volume']
   print(f'   cell_vol.min(), max() = {cell_vol.min()}, {cell_vol.max()}')
@@ -239,10 +247,10 @@ def plot_pressure():
   yvals = mcds.get_cell_df()['position_y']
 #   zvals = mcds.get_cell_df()['position_z']
 
-  xlist = deque()
-  ylist = deque()
-  rlist = deque()
-  rgb_list = deque()
+#   xlist = deque()
+#   ylist = deque()
+#   rlist = deque()
+#   rgb_list = deque()
 
 #  print('\n---- ' + fname + ':')
 #   tree = ET.parse(fname)
@@ -254,10 +262,12 @@ def plot_pressure():
 
   title_str = "(" + str(current_idx) + ") Current time: " + str(total_min) + "m"
   title_str += " (" + str(num_cells) + " agents)"
-  axes_min = -1000.
-  axes_max = -axes_min
+#   axes_min = -1000.
+#   axes_max = -axes_min
+  axes_min = mcds.get_mesh()[0][0][0][0]
+  axes_max = mcds.get_mesh()[0][0][-1][0]
 
-  for icell in range(len(cell_pressure)):
+#   for icell in range(len(cell_pressure)):
     #   if icell < 5:
     #       print(f'{icell}) {cell_pressure[icell]}')
 
@@ -281,7 +291,35 @@ def plot_pressure():
 #   circles(xvals,yvals, s=rvals, color=rgbs)
 #   circles(xvals,yvals, s=rvals, color=rgbs)
 #   circles(xvals,yvals, s=2)
-  circles(xvals,yvals, s=cell_radii, color="white", edgecolor='black', linewidth=0.5)
+  my_plot = circles(xvals,yvals, s=cell_radii, color="white", edgecolor='black', linewidth=0.5)
+
+#   cmap = plt.cm.hot
+  if True:
+    num_contours = 10
+#    vmin = 30.
+#    vmax = 38.
+
+    levels = MaxNLocator(nbins=30).tick_values(vmin, vmax)
+#    cmap = plt.get_cmap('PiYG')
+    cmap = plt.get_cmap('viridis')
+    norm = BoundaryNorm(levels, ncolors=cmap.N, clip=True)
+
+#    my_plot = plt.contourf(xvec,xvec,M[field_idx,:].reshape(N,N), num_contours, cmap='viridis') #'viridis'
+    if fix_cmap > 0:
+      # my_plot = plt.contourf(xvec,xvec,M[field_idx,:].reshape(N,N), levels=levels, cmap=cmap)
+    #   my_plot = plt.contourf(xgrid, ygrid, M[field_idx, :].reshape(numy, numx, ), levels=levels, extend='both', cmap=cmap)
+        pass
+    else:
+      # my_plot = plt.contourf(xvec,xvec,M[field_idx,:].reshape(N,N), cmap=cmap)
+    #   my_plot = plt.contourf(xgrid, ygrid, M[field_idx, :].reshape(numy, numx), cmap=cmap)
+        pass
+
+    if cbar == None:  # if we always do this, it creates an additional colorbar!
+#      cbar = plt.colorbar(my_plot, boundaries=np.arange(vmin, vmax, 1.0))
+      cbar = plt.colorbar(my_plot)
+    else:
+      cbar.ax.clear()
+      cbar = plt.colorbar(my_plot, cax=cbar.ax)
 
 #plt.xlim(0,2000)  # TODO - get these values from width,height in .svg at top
 #plt.ylim(0,2000)
