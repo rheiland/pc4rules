@@ -232,7 +232,8 @@ def plot_pressure():
     # radius = phenotype.volume.total;
     # radius /= four_thirds_pi;
     # radius = pow( radius , 0.333333333333333333333333333333333333333 );
-  cell_radius = np.divide(cell_vol, four_thirds_pi)
+  cell_radii = np.divide(cell_vol, four_thirds_pi)
+  cell_radii = np.power(cell_radii, 0.333333333333333333333333333333333333333)
 
   xvals = mcds.get_cell_df()['position_x']
   yvals = mcds.get_cell_df()['position_y']
@@ -257,8 +258,8 @@ def plot_pressure():
   axes_max = -axes_min
 
   for icell in range(len(cell_pressure)):
-      if icell < 5:
-          print(f'{icell}) {cell_pressure[icell]}')
+    #   if icell < 5:
+    #       print(f'{icell}) {cell_pressure[icell]}')
 
     #   if (s[0:3] == "rgb"):  # if an rgb string, e.g. "rgb(175,175,80)" 
     #     rgb = list(map(int, s[4:-1].split(","))) 
@@ -279,7 +280,8 @@ def plot_pressure():
 
 #   circles(xvals,yvals, s=rvals, color=rgbs)
 #   circles(xvals,yvals, s=rvals, color=rgbs)
-  circles(xvals,yvals, s=2)
+#   circles(xvals,yvals, s=2)
+  circles(xvals,yvals, s=cell_radii, color="white", edgecolor='black', linewidth=0.5)
 
 #plt.xlim(0,2000)  # TODO - get these values from width,height in .svg at top
 #plt.ylim(0,2000)
