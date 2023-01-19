@@ -17,6 +17,29 @@ from PyQt5.QtWidgets import QFrame,QApplication,QWidget,QTabWidget,QLineEdit, QG
 from PyQt5.QtWidgets import QMessageBox
 # from PyQt5.QtGui import QTextEdit
 
+from PyQt5 import QtWidgets
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
+from matplotlib.figure import Figure
+import matplotlib.pyplot as plt
+import numpy as np
+
+
+class RulesPlotWindow(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.layout = QVBoxLayout()
+        self.label = QLabel("Rule Plot")
+        self.layout.addWidget(self.label)
+
+        self.figure = plt.figure()
+        self.canvas = FigureCanvasQTAgg(self.figure)
+        self.canvas.setStyleSheet("background-color:transparent;")
+        self.ax0 = self.figure.add_subplot(111, adjustable='box')
+        self.layout.addWidget(self.canvas)
+
+        self.setLayout(self.layout)
+#---------------------
+
 class QHLine(QFrame):
     def __init__(self):
         super(QHLine, self).__init__()
@@ -43,11 +66,14 @@ class Rules(QWidget):
     def __init__(self, microenv_tab, celldef_tab):
         super().__init__()
 
+        self.rules_plot = None
+
         # self.nanohub_flag = nanohub_flag
         self.nanohub_flag = False
 
         self.microenv_tab = microenv_tab
         self.celldef_tab = celldef_tab
+
         self.max_rule_table_rows = 99
 
         # table columns' indices
@@ -146,6 +172,12 @@ class Rules(QWidget):
 
         # hlayout.addWidget(QLabel("                         ")) 
 
+        self.plot_rule_button = QPushButton("Plot")
+        self.plot_rule_button.setStyleSheet("background-color: lightgreen")
+        self.plot_rule_button.clicked.connect(self.plot_rule_cb)
+        hlayout.addWidget(self.plot_rule_button,0) 
+
+        #------------
         hlayout.addStretch(1)
         self.rules_tab_layout.addLayout(hlayout) 
 
@@ -614,6 +646,50 @@ class Rules(QWidget):
     #     self.rules_text.setPlainText("")
     #     self.rules_folder.setText("")
     #     self.rules_file.setText("")
+        return
+
+    #-----------------------------------------------------------
+    def hill(self, x, half_max = 0.5 , hill_power = 2 ):
+        z = (x / half_max)** hill_power; 
+        return z/(1.0 + z); 
+
+    def update_rule_plot(self):
+        self.rules_plot.ax0.cla()
+        # self.plot_svg(self.current_svg_frame)
+        # self.frame_count.setText(str(self.current_svg_frame))
+        low = 0
+        high = 4
+        # X = np.linspace( low,high, 1001 ); 
+        min_val = float(self.rule_min_val.text())
+        base_val = float(self.rule_base_val.text())
+        max_val = float(self.rule_max_val.text())
+        X = np.linspace(min_val,max_val, 101) 
+
+        half_max = float(self.rule_half_max.text())
+        hill_power = int(self.rule_hill_power.text())
+        Y = self.hill(X, half_max=half_max, hill_power=hill_power)
+        self.rules_plot.ax0.plot(X,Y,'r-')
+        self.rules_plot.ax0.grid()
+        title = "cell type: " + self.celltype_dropdown.currentText()
+        self.rules_plot.ax0.set_xlabel('signal: ' + self.signal_dropdown.currentText())
+        self.rules_plot.ax0.set_ylabel('response: ' + self.behavior_dropdown.currentText())
+        self.rules_plot.ax0.set_title(title, fontsize=10)
+        self.rules_plot.canvas.update()
+        self.rules_plot.canvas.draw()
+
+    def plot_rule_cb(self):
+        if not self.rules_plot:
+            self.rules_plot = RulesPlotWindow()
+            # self.rules_plot.ax0.plot([0,1,2,3,4], [10,1,20,3,40])
+            self.update_rule_plot()
+            self.rules_plot.show()
+        else:
+            self.update_rule_plot()
+            self.rules_plot.show()
+
+        # self.myscroll.setWidget(self.canvas) # self.config_params = QWidget()
+        # self.rules_plot.ax0.plot([0,1,2,3,4], [10,1,20,3,40])
+        # self.rules_plot.layout.addWidget(self.canvas)
         return
 
     #-----------------------------------------------------------
