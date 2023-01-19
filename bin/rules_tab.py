@@ -78,7 +78,7 @@ class Rules(QWidget):
 
         # table columns' indices
         self.rules_celltype_idx = 0
-        self.rules_behavior_idx = 1
+        self.rules_response_idx = 1
         self.rules_minval_idx = 2
         self.rules_baseval_idx = 3
         self.rules_maxval_idx = 4
@@ -185,16 +185,16 @@ class Rules(QWidget):
         hlayout = QHBoxLayout()
         # hlayout.addStretch(0)
 
-        label = QLabel("Behavior")
+        label = QLabel("Response")
         # label.setAlignment(QtCore.Qt.AlignCenter)
         label.setAlignment(QtCore.Qt.AlignLeft)
         hlayout.addWidget(label) 
 
 
-        self.behavior_dropdown = QComboBox()
-        self.behavior_dropdown.setFixedWidth(300)
-        hlayout.addWidget(self.behavior_dropdown) 
-        # self.behavior_dropdown.currentIndexChanged.connect(self.signal_dropdown_changed_cb)  
+        self.response_dropdown = QComboBox()
+        self.response_dropdown.setFixedWidth(300)
+        hlayout.addWidget(self.response_dropdown) 
+        # self.response_dropdown.currentIndexChanged.connect(self.signal_dropdown_changed_cb)  
 
         self.rules_tab_layout.addLayout(hlayout) 
 
@@ -428,7 +428,7 @@ class Rules(QWidget):
         # header.setSectionResizeMode(8, QHeaderView.ResizeToContents)  # arg, don't work as expected
         # header.setSectionResizeMode(9, QHeaderView.ResizeToContents)
 
-        self.rules_table.setHorizontalHeaderLabels(['CellType','Behavior','Min','Base','Max', 'Signal','Direction','Half-max','Hill power','Apply to dead'])
+        self.rules_table.setHorizontalHeaderLabels(['CellType','Response','Min','Base','Max', 'Signal','Direction','Half-max','Hill power','Apply to dead'])
 
         # Don't like the behavior these offer, e.g., locks down width of 0th column :/
         # header = self.rules_table.horizontalHeader()       
@@ -452,18 +452,18 @@ class Rules(QWidget):
             w_me.wcol = self.rules_celltype_idx
 
 
-            # ------- Behavior
+            # ------- response
             # w_varval = MyQLineEdit('0.0')
             w_me = MyQLineEdit()
             w_me.setFrame(False)
             # item = QTableWidgetItem('')
             w_me.vname = w_me  
             w_me.wrow = irow
-            w_me.wcol = self.rules_behavior_idx
+            w_me.wcol = self.rules_response_idx
             # w_me.idx = irow   # rwh: is .idx used?
             # w_me.setValidator(QtGui.QDoubleValidator())
             # self.rules_table.setItem(irow, self.custom_icol_value, item)
-            self.rules_table.setCellWidget(irow, self.rules_behavior_idx, w_me)
+            self.rules_table.setCellWidget(irow, self.rules_response_idx, w_me)
             # w_varval.textChanged[str].connect(self.custom_data_value_changed)  # being explicit about passing a string 
 
             # ------- Min val
@@ -672,7 +672,7 @@ class Rules(QWidget):
         self.rules_plot.ax0.grid()
         title = "cell type: " + self.celltype_dropdown.currentText()
         self.rules_plot.ax0.set_xlabel('signal: ' + self.signal_dropdown.currentText())
-        self.rules_plot.ax0.set_ylabel('response: ' + self.behavior_dropdown.currentText())
+        self.rules_plot.ax0.set_ylabel('response: ' + self.response_dropdown.currentText())
         self.rules_plot.ax0.set_title(title, fontsize=10)
         self.rules_plot.canvas.update()
         self.rules_plot.canvas.draw()
@@ -697,7 +697,7 @@ class Rules(QWidget):
         # old: create csv string
         rule_str = self.celltype_dropdown.currentText()
         rule_str += ','
-        rule_str += self.behavior_dropdown.currentText()
+        rule_str += self.response_dropdown.currentText()
         rule_str += ','
         rule_str += self.rule_min_val.text()
         rule_str += ','
@@ -722,7 +722,7 @@ class Rules(QWidget):
         irow = self.num_rules
         print("add_rule_cb():self.num_rules= ",self.num_rules)
         self.rules_table.cellWidget(irow, self.rules_celltype_idx).setText( self.celltype_dropdown.currentText() )
-        self.rules_table.cellWidget(irow, self.rules_behavior_idx).setText( self.behavior_dropdown.currentText() )
+        self.rules_table.cellWidget(irow, self.rules_response_idx).setText( self.response_dropdown.currentText() )
         self.rules_table.cellWidget(irow, self.rules_minval_idx).setText( self.rule_min_val.text() )
         self.rules_table.cellWidget(irow, self.rules_baseval_idx).setText( self.rule_base_val.text() )
         self.rules_table.cellWidget(irow, self.rules_maxval_idx).setText( self.rule_max_val.text() )
@@ -760,18 +760,18 @@ class Rules(QWidget):
             w_me.wrow = irow
             w_me.wcol = self.rules_celltype_idx
 
-            # ------- Behavior
+            # ------- response
             # w_varval = MyQLineEdit('0.0')
             w_me = MyQLineEdit()
             w_me.setFrame(False)
             # item = QTableWidgetItem('')
             w_me.vname = w_me  
             w_me.wrow = irow
-            w_me.wcol = self.rules_behavior_idx
+            w_me.wcol = self.rules_response_idx
             # w_me.idx = irow   # rwh: is .idx used?
             # w_me.setValidator(QtGui.QDoubleValidator())
             # self.rules_table.setItem(irow, self.custom_icol_value, item)
-            self.rules_table.setCellWidget(irow, self.rules_behavior_idx, w_me)
+            self.rules_table.setCellWidget(irow, self.rules_response_idx, w_me)
             # w_varval.textChanged[str].connect(self.custom_data_value_changed)  # being explicit about passing a string 
 
             # ------- Min val
@@ -886,7 +886,7 @@ class Rules(QWidget):
         for irow in range(row, self.max_rule_table_rows):
             # print("---- decrement wrow in irow=",irow)
             # self.rules_celltype_idx = 0
-            # self.rules_behavior_idx = 1
+            # self.rules_response_idx = 1
             self.rules_table.cellWidget(irow,self.rules_celltype_idx).wrow -= 1  # sufficient to only decr the "name" column
 
             # print(f"   after removing {varname}, master_custom_var_d= ",self.master_custom_var_d)
@@ -954,7 +954,7 @@ class Rules(QWidget):
                 # print("rules_tab.py: save_rules_cb(): self.num_rules= ",self.num_rules)
                 for irow in range(self.num_rules):
         # self.rules_celltype_idx = 0
-        # self.rules_behavior_idx = 1
+        # self.rules_response_idx = 1
         # self.rules_minval_idx = 2
         # self.rules_baseval_idx = 3
         # self.rules_maxval_idx = 4
@@ -965,7 +965,7 @@ class Rules(QWidget):
         # self.rules_applydead_idx = 9
                     rule_str = self.rules_table.cellWidget(irow, self.rules_celltype_idx).text()
                     rule_str += ','
-                    rule_str += self.rules_table.cellWidget(irow, self.rules_behavior_idx).text()
+                    rule_str += self.rules_table.cellWidget(irow, self.rules_response_idx).text()
                     rule_str += ','
                     rule_str += self.rules_table.cellWidget(irow, self.rules_minval_idx).text()
                     rule_str += ','
@@ -985,7 +985,7 @@ class Rules(QWidget):
 
                     # rule_str = self.celltype_dropdown.currentText()
                     # rule_str += ','
-                    # rule_str += self.behavior_dropdown.currentText()
+                    # rule_str += self.response_dropdown.currentText()
                     # rule_str += ','
                     # rule_str += self.rule_min_val.text()
                     # rule_str += ','
@@ -1050,39 +1050,39 @@ class Rules(QWidget):
             else:
                 substrates.append(key)
 
-        #----- behaviors  (rwh TODO: add dict for default params for each entry)
+        #----- responses  (rwh TODO: add dict for default params for each entry)
         for s in substrates:
-            self.behavior_dropdown.addItem(s + " secretion")
+            self.response_dropdown.addItem(s + " secretion")
         for s in substrates:
-            self.behavior_dropdown.addItem(s + " secretion target")
+            self.response_dropdown.addItem(s + " secretion target")
         for s in substrates:
-            self.behavior_dropdown.addItem(s + " uptake")
+            self.response_dropdown.addItem(s + " uptake")
         for s in substrates:
-            self.behavior_dropdown.addItem(s + " export")
-        self.behavior_dropdown.addItem("cycle entry")
+            self.response_dropdown.addItem(s + " export")
+        self.response_dropdown.addItem("cycle entry")
         for idx in range(6):
-            self.behavior_dropdown.addItem("exit from cycle phase " + str(idx))
-        self.behavior_dropdown.addItem("apoptosis")
-        self.behavior_dropdown.addItem("necrosis")
-        self.behavior_dropdown.addItem("migration speed")
-        self.behavior_dropdown.addItem("migration bias")
-        self.behavior_dropdown.addItem("migration persistence time")
+            self.response_dropdown.addItem("exit from cycle phase " + str(idx))
+        self.response_dropdown.addItem("apoptosis")
+        self.response_dropdown.addItem("necrosis")
+        self.response_dropdown.addItem("migration speed")
+        self.response_dropdown.addItem("migration bias")
+        self.response_dropdown.addItem("migration persistence time")
         for s in substrates:
-            self.behavior_dropdown.addItem("chemotactic response to " + s)
-        self.behavior_dropdown.addItem("cell-cell adhesion")
-        self.behavior_dropdown.addItem("cell-cell adhesion elastic constant")
+            self.response_dropdown.addItem("chemotactic response to " + s)
+        self.response_dropdown.addItem("cell-cell adhesion")
+        self.response_dropdown.addItem("cell-cell adhesion elastic constant")
         for ct in self.celldef_tab.param_d.keys():
-            self.behavior_dropdown.addItem("adhesive affinity to " + ct)
-        self.behavior_dropdown.addItem("relative maximum adhesion distance")
-        self.behavior_dropdown.addItem("cell-cell repulsion")
-        self.behavior_dropdown.addItem("cell-BM adhesion")
-        self.behavior_dropdown.addItem("cell-BM repulsion")
-        self.behavior_dropdown.addItem("phagocytose dead cell")
+            self.response_dropdown.addItem("adhesive affinity to " + ct)
+        self.response_dropdown.addItem("relative maximum adhesion distance")
+        self.response_dropdown.addItem("cell-cell repulsion")
+        self.response_dropdown.addItem("cell-BM adhesion")
+        self.response_dropdown.addItem("cell-BM repulsion")
+        self.response_dropdown.addItem("phagocytose dead cell")
         for ct in self.celldef_tab.param_d.keys():
-            self.behavior_dropdown.addItem("phagocytose " + ct)
+            self.response_dropdown.addItem("phagocytose " + ct)
         for adj in ["phagocytose ","attack ","fuse to ","transform to "]:
             for ct in self.celldef_tab.param_d.keys():
-                self.behavior_dropdown.addItem(adj + ct)
+                self.response_dropdown.addItem(adj + ct)
             
             
 

@@ -38,6 +38,7 @@ from run_tab import RunModel
 from vis_tab import Vis 
 from legend_tab import Legend 
 
+
 class QHLine(QFrame):
     def __init__(self, sunken_flag):
         super(QHLine, self).__init__()
@@ -60,6 +61,9 @@ class PhysiCellXMLCreator(QWidget):
     # ex = PhysiCellXMLCreator(vis_flag, config_file, skip_validate_flag, exec_file)
     def __init__(self, show_vis_flag, config_file, skip_validate_flag, exec_file_flag, parent = None):
         super(PhysiCellXMLCreator, self).__init__(parent)
+
+        # self.rules_plot = RulesPlotWindow()
+        # self.window1.show()
 
         # self.nanohub = True
         self.studio_flag = True
@@ -103,7 +107,8 @@ class PhysiCellXMLCreator(QWidget):
         # self.menubar.addMenu(self.file_menu)
 
         # model_name = "rules_model1"
-        model_name = "template"
+        # model_name = "template"
+        model_name = "tumor"
 
         # then what??
         # binDirectory = os.path.realpath(os.path.abspath(__file__))
@@ -145,7 +150,7 @@ class PhysiCellXMLCreator(QWidget):
             # sys.exit()
         else:
             # model_name = "rules_model1"
-            model_name = "template"
+            model_name = "tumor"
             read_file = os.path.join(self.absolute_data_dir, model_name + ".xml")
             self.current_xml_file = os.path.join(self.studio_data_dir, model_name + ".xml")
         #--------------------------
@@ -348,7 +353,6 @@ class PhysiCellXMLCreator(QWidget):
         # file_menu.addAction("Save as mymodel.xml", self.save_as_cb) 
 
         if not self.nanohub_flag: 
-            # file_menu.addAction("New (template)", self.new_model_cb, QtGui.QKeySequence('Ctrl+n'))
             file_menu.addAction("Open", self.open_as_cb, QtGui.QKeySequence('Ctrl+o'))
             # file_menu.addAction("Save mymodel.xml", self.save_cb, QtGui.QKeySequence('Ctrl+s'))
             file_menu.addAction("Save as", self.save_as_cb)
@@ -702,7 +706,7 @@ def main():
         parser.add_argument("-c", "--config",  type=str, help="config file (.xml)")
         parser.add_argument("-e", "--exec",  type=str, help="executable model")
 
-        exec_file = 'project'  # for template sample
+        exec_file = 'project'  # for template sample; renamed later
 
         # args = parser.parse_args()
         args, unknown = parser.parse_known_args()
@@ -749,6 +753,8 @@ def main():
 
     # ex = PhysiCellXMLCreator(config_file, studio_flag, skip_validate_flag, rules_flag, model3D_flag, exec_file)
     ex = PhysiCellXMLCreator(vis_flag, config_file, skip_validate_flag, exec_file)
+
+
     # ex.setGeometry(100,100, 800,600)
     ex.show()
     sys.exit(studio_app.exec_())

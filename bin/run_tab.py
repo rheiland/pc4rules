@@ -103,7 +103,7 @@ class RunModel(QWidget):
         if self.nanohub_flag:
             self.config_xml_name.setText('config.xml')
         else:
-            self.config_xml_name.setText('data/template.xml')
+            self.config_xml_name.setText('data/tumor.xml')
         hbox.addWidget(self.config_xml_name)
 
         # self.vbox.addStretch()
