@@ -270,6 +270,7 @@ class PhysiCellXMLCreator(QWidget):
         self.run_tab.homedir = self.homedir
         self.run_tab.rules_tab = self.rules_tab
         if not self.nanohub_flag:
+            self.run_tab.config_file = self.config_file
             self.run_tab.config_xml_name.setText(self.config_file)
         # self.run_tab.nanohub_flag = self.nanohub_flag
 
@@ -332,6 +333,7 @@ class PhysiCellXMLCreator(QWidget):
             self.tabWidget.setCurrentIndex(0)  # About
 
         # self.tabWidget.setCurrentIndex(5)  # rwh hack/debug/default
+        # self.tabWidget.setCurrentIndex(8)  # rwh hack/debug/default
 
 
         # self.reset_xml_root()
@@ -401,8 +403,8 @@ class PhysiCellXMLCreator(QWidget):
         # model_menu.addAction("interactions", self.interactions_cb)
 
         #-----
-        view_menu = menubar.addMenu('&View')
-        view_menu.addAction("Show/Hide plot range", self.view_plot_range_cb)
+        # view_menu = menubar.addMenu('&View')
+        # view_menu.addAction("Show/Hide plot range", self.view_plot_range_cb)
 
         menubar.adjustSize()  # Argh. Otherwise, only 1st menu appears, with ">>" to others!
 
@@ -588,8 +590,9 @@ class PhysiCellXMLCreator(QWidget):
 
             # -- don't do this now; file is copied to tmpdir/config.xml
             # if self.studio_flag:
-            #     self.run_tab.config_file = self.current_xml_file
-            #     self.run_tab.config_xml_name.setText(self.current_xml_file)
+            if not self.nanohub_flag:
+                self.run_tab.config_file = self.current_xml_file
+                self.run_tab.config_xml_name.setText(self.current_xml_file)
             self.show_sample_model()
 
         else:
@@ -685,6 +688,7 @@ class PhysiCellXMLCreator(QWidget):
             config_file = pssm_root.find(".//config").text
             print("config_file = ",config_file)
             self.run_tab.exec_name.setText(exec_pgm)
+            self.run_tab.config_file = config_file
             self.run_tab.config_xml_name.setText(config_file)
 
 

@@ -200,8 +200,12 @@ class RunModel(QWidget):
             # self.celldef_tab.fill_xml()
             # self.user_params_tab.fill_xml()
             print("\n\n ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-            print("run_tab.py: ----> writing modified model to ",new_config_file)
-            self.tree.write(new_config_file)  # saves modified XML to tmpdir/config.xml 
+            if self.nanohub_flag:
+                print("run_tab.py: ----> writing modified model to ",new_config_file)
+                self.tree.write(new_config_file)  # saves modified XML to tmpdir/config.xml 
+            else:
+                print("run_tab.py: ----> writing modified model to ",self.config_file)
+                self.tree.write(self.config_file)
 
             # Operate from tmpdir. XML: <folder>,</folder>; temporary output goes here.  May be copied to cache later.
             # tdir = os.path.abspath('tmpdir')
