@@ -207,8 +207,12 @@ def circles(x, y, s, c='b', vmin=None, vmax=None, **kwargs):
     ax.add_collection(collection)
     ax.autoscale_view()
     plt.draw_if_interactive()
-    if c is not None:
-        plt.sci(collection)
+    # if c is not None:
+    #     try:
+    #         print("------ in circles(): calling plt.sci(collection) ----------")
+    #         plt.sci(collection)
+    #     except:
+    #         print("------ ERROR in circles(): calling plt.sci(collection) ----------")
     return collection
 
 #-----------------------------------------------------
@@ -298,6 +302,7 @@ def plot_pressure():
 #   cvals = np.random.rand(num_cells)
 #   my_plot = circles(xvals,yvals, s=cell_radii, color="white", edgecolor='black', linewidth=0.5)
 #   my_plot = circles(xvals,yvals, s=cell_radii, facecolors=facecolors, edgecolor='black', linewidth=0.5)
+  print(" -- calling circles(): c=",cell_pressure)
   my_plot = circles(xvals,yvals, s=cell_radii, c=cell_pressure, edgecolor='black', linewidth=0.5)
 
 #   cmap = plt.cm.hot
@@ -306,10 +311,10 @@ def plot_pressure():
 #    vmin = 30.
 #    vmax = 38.
 
-    levels = MaxNLocator(nbins=30).tick_values(vmin, vmax)
-#    cmap = plt.get_cmap('PiYG')
-    cmap = plt.get_cmap('viridis')
-    norm = BoundaryNorm(levels, ncolors=cmap.N, clip=True)
+#     levels = MaxNLocator(nbins=30).tick_values(vmin, vmax)
+# #    cmap = plt.get_cmap('PiYG')
+#     cmap = plt.get_cmap('viridis')
+#     norm = BoundaryNorm(levels, ncolors=cmap.N, clip=True)
 
 #    my_plot = plt.contourf(xvec,xvec,M[field_idx,:].reshape(N,N), num_contours, cmap='viridis') #'viridis'
     if fix_cmap > 0:
@@ -324,9 +329,11 @@ def plot_pressure():
     if cbar == None:  # if we always do this, it creates an additional colorbar!
 #      cbar = plt.colorbar(my_plot, boundaries=np.arange(vmin, vmax, 1.0))
       cbar = plt.colorbar(my_plot)
+      print("cbar=",cbar)
     else:
       cbar.ax.clear()
       cbar = plt.colorbar(my_plot, cax=cbar.ax)
+      print("cbar(2)=",cbar)
 
 #plt.xlim(0,2000)  # TODO - get these values from width,height in .svg at top
 #plt.ylim(0,2000)

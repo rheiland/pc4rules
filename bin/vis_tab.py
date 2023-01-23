@@ -1,6 +1,7 @@
 import sys
 import os
 import time
+# import inspect
 import xml.etree.ElementTree as ET  # https://docs.python.org/2/library/xml.etree.elementtree.html
 from pathlib import Path
 # from ipywidgets import Layout, Label, Text, Checkbox, Button, BoundedIntText, HBox, VBox, Box, \
@@ -22,6 +23,7 @@ from PyQt5.QtWidgets import QFrame,QApplication,QWidget,QTabWidget,QFormLayout,Q
 import numpy as np
 import scipy.io
 from pyMCDS_cells import pyMCDS_cells 
+from pyMCDS import pyMCDS
 import matplotlib
 matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
@@ -56,15 +58,20 @@ class Vis(QWidget):
         # self.tab = QWidget()
         # self.tabs.resize(200,5)
         
+        self.fix_cmap_flag = False
+        self.cells_edge_checked_flag = True
+
         self.num_contours = 15
         self.num_contours = 25
         self.num_contours = 50
         self.fontsize = 9
         self.title_fontsize = 10
 
-        self.plot_svg_flag = True
+        # self.plot_svg_flag = True
+        self.plot_cells_svg = True
         # self.plot_svg_flag = False
         self.field_index = 4  # substrate (0th -> 4 in the .mat)
+        self.plot_xmin = None
 
         self.use_defaults = True
         self.title_str = ""
@@ -109,7 +116,14 @@ class Vis(QWidget):
         # self.output_dir = "output"
         # self.output_dir = "../tmpdir"   # for nanoHUB
         # self.output_dir = "tmpdir"   # for nanoHUB
+
+        # temporary debugging plotting without having to Run first
+        # if self.nanohub_flag:
+        #     self.output_dir = "."   # for nanoHUB
+        # else:
+        #     self.output_dir = "tmpdir"
         self.output_dir = "."   # for nanoHUB
+        # self.output_dir = "tmpdir"   # for nanoHUB
 
 
         # do in create_figure()?
@@ -129,7 +143,6 @@ class Vis(QWidget):
         label_height = 20
         units_width = 70
 
-        # self.substrates_combobox = QComboBox(self)
         self.substrates_combobox = QComboBox()
         self.substrates_combobox.setEnabled(False)
         self.field_dict = {}
@@ -231,14 +244,17 @@ class Vis(QWidget):
         # hbox2.addStretch(1)  # not sure about this, but keeps buttons shoved to left
         # hbox.addLayout(hbox2) 
 
-        self.cell_scalar_dropdown = QComboBox()
-        # self.cell_scalar_dropdown.setFixedWidth(300)
-        # self.cell_scalar_dropdown.currentIndexChanged.connect(self.cell_scalar_changed_cb)
-        self.cell_scalar_dropdown.addItem("pressure")
-        self.cell_scalar_dropdown.addItem("volume")
-        self.cell_scalar_dropdown.addItem("damage")
-        self.cell_scalar_dropdown.setEnabled(False)
-        hbox.addWidget(self.cell_scalar_dropdown)
+        self.cell_scalar_combobox = QComboBox()
+        # self.cell_scalar_combobox.setFixedWidth(300)
+        # self.cell_scalar_combobox.currentIndexChanged.connect(self.cell_scalar_changed_cb)
+
+        # e.g., dict_keys(['ID', 'position_x', 'position_y', 'position_z', 'total_volume', 'cell_type', 'cycle_model', 'current_phase', 'elapsed_time_in_phase', 'nuclear_volume', 'cytoplasmic_volume', 'fluid_fraction', 'calcified_fraction', 'orientation_x', 'orientation_y', 'orientation_z', 'polarity', 'migration_speed', 'motility_vector_x', 'motility_vector_y', 'motility_vector_z', 'migration_bias', 'motility_bias_direction_x', 'motility_bias_direction_y', 'motility_bias_direction_z', 'persistence_time', 'motility_reserved', 'chemotactic_sensitivities_x', 'chemotactic_sensitivities_y', 'adhesive_affinities_x', 'adhesive_affinities_y', 'dead_phagocytosis_rate', 'live_phagocytosis_rates_x', 'live_phagocytosis_rates_y', 'attack_rates_x', 'attack_rates_y', 'damage_rate', 'fusion_rates_x', 'fusion_rates_y', 'transformation_rates_x', 'transformation_rates_y', 'oncoprotein', 'elastic_coefficient', 'kill_rate', 'attachment_lifetime', 'attachment_rate', 'oncoprotein_saturation', 'oncoprotein_threshold', 'max_attachment_distance', 'min_attachment_distance'])
+
+        self.cell_scalar_combobox.addItem("pressure")
+        self.cell_scalar_combobox.addItem("total_volume")
+        self.cell_scalar_combobox.addItem("current_phase")
+        self.cell_scalar_combobox.setEnabled(False)
+        hbox.addWidget(self.cell_scalar_combobox)
 
 
         self.cells_edge_checkbox = QCheckBox('edge')
@@ -251,12 +267,14 @@ class Vis(QWidget):
 
         #------------------
         hbox = QHBoxLayout()
-        self.substrates_checkbox = QCheckBox('Substrates')
+        self.substrates_checkbox = QCheckBox('substrates')
         self.substrates_checkbox.setChecked(False)
         # self.substrates_checkbox.setEnabled(False)
         self.substrates_checkbox.clicked.connect(self.substrates_toggle_cb)
         self.substrates_checked_flag = False
         hbox.addWidget(self.substrates_checkbox)
+
+        hbox.addWidget(self.substrates_combobox)
 
         self.vbox.addLayout(hbox)
 
@@ -381,6 +399,7 @@ class Vis(QWidget):
 
         #-------------------
         self.substrates_combobox.currentIndexChanged.connect(self.substrates_combobox_changed_cb)
+        self.cell_scalar_combobox.currentIndexChanged.connect(self.cell_scalar_combobox_changed_cb)
 
         # controls_vbox = QVBoxLayout()
         # controls_vbox.addLayout(controls_hbox)
@@ -438,12 +457,14 @@ class Vis(QWidget):
     def cells_svg_mat_cb(self):
         radioBtn = self.sender()
         if "svg" in radioBtn.text():
-            self.cell_svg = True
-            self.cell_scalar_dropdown.setEnabled(False)
+            self.plot_cells_svg = True
+            self.cell_scalar_combobox.setEnabled(False)
             # self.fix_cmap_checkbox.setEnabled(bval)
         else:
-            self.cell_svg = False
-            self.cell_scalar_dropdown.setEnabled(True)
+            self.plot_cells_svg = False
+            self.cell_scalar_combobox.setEnabled(True)
+        # print("\n>>> calling update_plots() from "+ inspect.stack()[0][3])
+        self.update_plots()
 
     def reset_plot_range(self):
         try:  # due to the initial callback
@@ -460,6 +481,7 @@ class Vis(QWidget):
         except:
             pass
 
+        # print("\n>>> calling update_plots() from "+ inspect.stack()[0][3])
         self.update_plots()
 
 
@@ -498,6 +520,7 @@ class Vis(QWidget):
             self.current_svg_frame = int(self.frame_count.text())
         except:
             pass
+        # print("\n>>> calling update_plots() from "+ inspect.stack()[0][3])
         self.update_plots()
 
     def cmin_cmax_cb(self):
@@ -508,6 +531,7 @@ class Vis(QWidget):
             self.fixed_contour_levels = MaxNLocator(nbins=self.num_contours).tick_values(self.cmin_value, self.cmax_value)
         except:
             pass
+        # print("\n>>> calling update_plots() from "+ inspect.stack()[0][3])
         self.update_plots()
 
     def init_plot_range(self, config_tab):
@@ -533,6 +557,7 @@ class Vis(QWidget):
         except:
             pass
 
+        # print("\n>>> calling update_plots() from "+ inspect.stack()[0][3])
         self.update_plots()
 
     def update_plots(self):
@@ -540,7 +565,10 @@ class Vis(QWidget):
         if self.substrates_checked_flag:  # do first so cells are plotted on top
             self.plot_substrate(self.current_svg_frame)
         if self.cells_checked_flag:
-            self.plot_svg(self.current_svg_frame)
+            if self.plot_cells_svg:
+                self.plot_svg(self.current_svg_frame)
+            else:
+                self.plot_cell_scalar(self.current_svg_frame)
 
         self.frame_count.setText(str(self.current_svg_frame))
 
@@ -564,9 +592,14 @@ class Vis(QWidget):
         # print('field_min_max= ',self.field_min_max)
         # self.substrates_combobox.setCurrentIndex(2)  # not working; gets reset to oxygen somehow after a Run
 
+    def cell_scalar_combobox_changed_cb(self,idx):
+        # print("\n>>> calling update_plots() from "+ inspect.stack()[0][3])
+        self.update_plots()
+
     def substrates_combobox_changed_cb(self,idx):
         # print("----- vis_tab.py: substrates_combobox_changed_cb: idx = ",idx)
         self.field_index = 4 + idx # substrate (0th -> 4 in the .mat)
+        # print("\n>>> calling update_plots() from "+ inspect.stack()[0][3])
         self.update_plots()
 
 
@@ -713,6 +746,7 @@ class Vis(QWidget):
             self.reset_model_flag = False
 
         self.current_svg_frame = 0
+        # print("\n>>> calling update_plots() from "+ inspect.stack()[0][3])
         self.update_plots()
 
     def last_plot_cb(self, text):
@@ -802,7 +836,8 @@ class Vis(QWidget):
         self.cells_mat_rb.setEnabled(bval)
         self.cells_edge_checkbox.setEnabled(bval)
         if not bval:
-            self.cell_scalar_dropdown.setEnabled(False)
+            self.cell_scalar_combobox.setEnabled(False)
+        # print("\n>>> calling update_plots() from "+ inspect.stack()[0][3])
         self.update_plots()
 
     def cells_edge_toggle_cb(self,bval):
@@ -817,6 +852,7 @@ class Vis(QWidget):
 
         if not self.plot_xmin:
             self.reset_plot_range()
+        # print("\n>>> calling update_plots() from "+ inspect.stack()[0][3])
         self.update_plots()
 
     def fix_cmap_toggle_cb(self,bval):
@@ -845,6 +881,7 @@ class Vis(QWidget):
             # self.colormap_max.disabled = True
             self.field_min_max[field_name][2] = False
 
+        # print("\n>>> calling update_plots() from "+ inspect.stack()[0][3])
         self.update_plots()
 
 
@@ -883,6 +920,7 @@ class Vis(QWidget):
         self.current_svg_frame += 1
         print('\n\n   ====>     prepare_plot_cb(): svg # ',self.current_svg_frame)
 
+        # print("\n>>> calling update_plots() from "+ inspect.stack()[0][3])
         self.update_plots()
 
 
@@ -953,7 +991,7 @@ class Vis(QWidget):
 
         # plt.subplots_adjust(left=0, bottom=0.05, right=1, top=1, wspace=0, hspace=0)
 
-        self.plot_substrate(self.current_svg_frame)
+        # self.plot_substrate(self.current_svg_frame)
         self.plot_svg(self.current_svg_frame)
         # self.canvas.draw()
 
@@ -1019,8 +1057,14 @@ class Vis(QWidget):
                 for x_, y_, s_ in zipped]
         collection = PatchCollection(patches, **kwargs)
         if c is not None:
+            print("--- circles(): type(c)=",type(c))
+            c = c.values
+            print("--- circles() (2): type(c)=",type(c))
+
+            print("--- circles(): c=",c)
             c = np.broadcast_to(c, zipped.shape).ravel()
             collection.set_array(c)
+            print("--- circles(): vmin,vmax=",vmin,vmax)
             collection.set_clim(vmin, vmax)
 
         # ax = plt.gca()
@@ -1028,11 +1072,16 @@ class Vis(QWidget):
         # ax.autoscale_view()
         self.ax0.add_collection(collection)
         self.ax0.autoscale_view()
-        # plt.draw_if_interactive()
-        if c is not None:
-            # plt.sci(collection)
-            self.ax0.sci(collection)
-        # return collection
+        plt.draw_if_interactive()
+        # if c is not None:
+        #     try:
+        #         print("------ circles(): doing plt.sci(collection), type(collection)=",type(collection))
+        #         plt.sci(collection)
+        #         # self.ax0.sci(collection)
+        #         # self.ax0.sci(collection)
+        #     except:
+        #         print("--- ERROR in circles() doing plt.sci(collection)")
+        return collection
 
     #------------------------------------------------------------
     # not currently used, but maybe useful
@@ -1111,6 +1160,7 @@ class Vis(QWidget):
         # self.current_frame = frame
         fname = "snapshot%08d.svg" % frame
         full_fname = os.path.join(self.output_dir, fname)
+        print("-- plot_svg(): full_fname= ",full_fname)
         # try:
         #     print("   ==>>>>> plot_svg(): full_fname=",full_fname)
         # except:
@@ -1351,7 +1401,7 @@ class Vis(QWidget):
                 # plt.scatter(xvals,yvals, s=markers_size, c=rgbs, edgecolor='black', linewidth=0.5)
                 # self.circles(xvals,yvals, s=rvals, color=rgbas, alpha=self.alpha, edgecolor='black', linewidth=0.5)
                 # print("--- plotting circles with edges!!")
-                self.circles(xvals,yvals, s=rvals, color=rgbas, edgecolor='black', linewidth=0.5)
+                self.circles(xvals,yvals, s=rvals, color=rgbas,  edgecolor='black', linewidth=0.5)
                 # cell_circles = self.circles(xvals,yvals, s=rvals, color=rgbs, edgecolor='black', linewidth=0.5)
                 # plt.sci(cell_circles)
             except (ValueError):
@@ -1360,33 +1410,131 @@ class Vis(QWidget):
             # plt.scatter(xvals,yvals, s=markers_size, c=rgbs)
             # self.circles(xvals,yvals, s=rvals, color=rgbas, alpha=self.alpha)
             # print("--- plotting circles without edges!!")
-            self.circles(xvals,yvals, s=rvals, color=rgbas)
+            self.circles(xvals,yvals, s=rvals, color=rgbas )
 
         self.ax0.set_aspect(1.0)
+    
+    #-----------------------------------------------------
+    def plot_cell_scalar(self, frame):
+        xml_file_root = "output%08d.xml" % frame
+        xml_file = os.path.join(self.output_dir, xml_file_root)
+        # xml_file = os.path.join("tmpdir", xml_file_root)  # temporary hack
+        cell_scalar_name = self.cell_scalar_combobox.currentText()
+        print(f"\n\n   >>>>--------- plot_cell_scalar(): xml_file={xml_file}, scalar={cell_scalar_name}")
+        if not Path(xml_file).is_file():
+            print("ERROR: file not found",xml_file)
+            return
+
+        #   if (os.path.isfile(fname) == False):
+        #     print("File does not exist: ",fname)
+        #     return
+
+        # mcds = pyMCDS(fname, '../tmpdir', microenv=False, graph=False, verbose=True)
+        # temporary hack to debug plotting without doing Run first
+        mcds = pyMCDS(xml_file_root, self.output_dir, microenv=False, graph=False, verbose=True)
+        # mcds = pyMCDS(xml_file_root, "tmpdir", microenv=False, graph=False, verbose=True)
+        total_min = mcds.get_time()
+        print("    time=",total_min)
+        cell_scalar = mcds.get_cell_df()[cell_scalar_name]
+        num_cells = len(cell_scalar)
+        print("  len(cell_scalar) = ",len(cell_scalar))
+        vmin = cell_scalar.min()
+        vmax = cell_scalar.max()
+        # fix_cmap = 0
+        print(f'   cell_scalar.min(), max() = {vmin}, {vmax}')
+        cell_vol = mcds.get_cell_df()['total_volume']
+        print(f'   cell_vol.min(), max() = {cell_vol.min()}, {cell_vol.max()}')
+
+        # static double four_thirds_pi =  4.188790204786391;
+        four_thirds_pi =  4.188790204786391
+        # radius = phenotype.volume.total;
+        # radius /= four_thirds_pi;
+        # radius = pow( radius , 0.333333333333333333333333333333333333333 );
+        cell_radii = np.divide(cell_vol, four_thirds_pi)
+        cell_radii = np.power(cell_radii, 0.333333333333333333333333333333333333333)
+
+        xvals = mcds.get_cell_df()['position_x']
+        yvals = mcds.get_cell_df()['position_y']
+
+        self.title_str = "(" + str(frame) + ") Current time: " + str(total_min) + "m"
+        self.title_str += " (" + str(num_cells) + " agents)"
+
+        axes_min = mcds.get_mesh()[0][0][0][0]
+        axes_max = mcds.get_mesh()[0][0][-1][0]
+
+        # cell_plot = None
+        if (self.cells_edge_checked_flag):
+            try:
+                # self.circles(xvals,yvals, s=rvals, color=rgbas, edgecolor='black', linewidth=0.5)
+                # cell_plot = self.circles(xvals,yvals, s=cell_radii, color=cell_scalar, vmin=vmin,vmax=vmax, edgecolor='black', linewidth=0.5)
+                cell_plot = self.circles(xvals,yvals, s=cell_radii, c=cell_scalar, edgecolor='black', linewidth=0.5)
+                # cell_plot = self.circles(xvals,yvals, s=cell_radii, c=cell_scalar, edgecolor='black', linewidth=0.5)
+            except (ValueError):
+                print("\n------ ERROR: Exception from circles with edges\n")
+                pass
+        else:
+            # self.circles(xvals,yvals, s=rvals, color=rgbas)
+            # cell_plot = self.circles(xvals,yvals, s=cell_radii, c=cell_scalar, vmin=vmin,vmax=vmax)
+            cell_plot = self.circles(xvals,yvals, s=cell_radii, c=cell_scalar)
 
 
-        # if not self.substrates_checked_flag:
-        #     print("------- plot_svg() -------------")
-        #     print("# axes = ",len(self.figure.axes))
-        #     if len(self.figure.axes) > 1: 
-        #         pts = self.figure.axes[-1].get_position().get_points()
-        #         print("type(pts) = ",type(pts))
-        #         # pts = [[0.78375, 0.11][0.81037234, 0.88]]
-        #         pts = np.array([[0.78375, 0.11],[0.81037234, 0.88]])
+        # levels = MaxNLocator(nbins=30).tick_values(vmin, vmax)
+        # cmap2 = plt.get_cmap('viridis')
+        # norm2 = BoundaryNorm(levels, ncolors=cmap2.N, clip=True)
 
-        #         print("figure.axes pts = ",pts)
-        #         label = self.figure.axes[-1].get_ylabel()
-        #         self.figure.axes[-1].remove()  # replace/update the colorbar
-        #         # cax = self.figure.add_axes([pts[0][0],pts[0][1],pts[1][0]-pts[0][0],pts[1][1]-pts[0][1]  ])
-        #         # self.cbar = self.figure.colorbar(substrate_plot, cax=cax)
-        #         # self.cbar.ax.set_ylabel(label)
-        #         # self.cbar.ax.tick_params(labelsize=self.fontsize)
+    #     if cbar == None:  # if we always do this, it creates an additional colorbar!
+    # #      cbar = plt.colorbar(cell_plot, boundaries=np.arange(vmin, vmax, 1.0))
+    #         cbar = plt.colorbar(cell_plot)
+    #     else:
+    #         cbar.ax.clear()
+    #         cbar = plt.colorbar(cell_plot, cax=cbar.ax)
+
+        print("------- plot_cell_scalar() -------------")
+        print("# axes = ",len(self.figure.axes))
+        if len(self.figure.axes) > 1: 
+            pts = self.figure.axes[-1].get_position().get_points()
+            # print("type(pts) = ",type(pts))
+            pts = np.array([[0.78375, 0.11],[0.81037234, 0.88]])
+
+            print("figure.axes pts = ",pts)
+            # label = self.figure.axes[-1].get_ylabel()
+            # label = cell_scalar_name
+            self.figure.axes[-1].remove()  # replace/update the colorbar
+            #ppp
+            cax2 = self.figure.add_axes([pts[0][0], pts[0][1], pts[1][0]-pts[0][0], pts[1][1]-pts[0][1]])
+            self.cbar2 = self.figure.colorbar(cell_plot, cax=cax2)
+            # self.cbar = self.figure.colorbar(cell_plot, cax=self.cbar.ax)
+            # cbar = plt.colorbar(my_plot, cax=cbar.ax)
+            # self.cbar.ax.clear()
+            self.cbar2.ax.set_ylabel(cell_scalar_name)
+            self.cbar2.ax.tick_params(labelsize=self.fontsize)
+
+            # unfortunately the aspect is different between the initial call to colorbar 
+            #   without cax argument. Try to reset it (but still it's somehow different)
+            # self.cbar.ax.set_aspect(20)
+        else:
+            # plt.colorbar(im)
+            # self.figure.colorbar(cell_plot)
+            self.cbar2 = self.figure.colorbar(cell_plot)
+            # self.figure.colorbar(cell_plot, boundaries=np.arange(vmin, vmax, 1.0))
+
+        # self.ax0.set_title(self.title_str, fontsize=self.title_fontsize)
+
+        # # if (contour_ok):
+        # # if (True):
+        # #     self.fontsize = 20
+        # #     self.ax0.set_title(self.title_str, fontsize=self.fontsize)
+        # #     cbar = self.figure.colorbar(substrate_plot, ax=self.ax0)
+        # #     cbar.ax.tick_params(labelsize=self.fontsize)
+
+        # self.ax0.set_xlim(self.plot_xmin, self.plot_xmax)
+        # self.ax0.set_ylim(self.plot_ymin, self.plot_ymax)
+        # self.ax0.set_aspect(1.0)
 
     #------------------------------------------------------------
     def plot_substrate(self, frame):
-        # global current_idx, axes_max
-        global current_frame
 
+        # f=1/0  # force segfault
         xml_file_root = "output%08d.xml" % frame
         xml_file = os.path.join(self.output_dir, xml_file_root)
         if not Path(xml_file).is_file():
@@ -1500,8 +1648,9 @@ class Vis(QWidget):
             print("figure.axes pts = ",pts)
             label = self.figure.axes[-1].get_ylabel()
             self.figure.axes[-1].remove()  # replace/update the colorbar
-            cax = self.figure.add_axes([pts[0][0],pts[0][1],pts[1][0]-pts[0][0],pts[1][1]-pts[0][1]  ])
-            self.cbar = self.figure.colorbar(substrate_plot, cax=cax)
+            #ppp
+            cax1 = self.figure.add_axes([pts[0][0],pts[0][1],pts[1][0]-pts[0][0],pts[1][1]-pts[0][1]  ])
+            self.cbar = self.figure.colorbar(substrate_plot, cax=cax1)
             self.cbar.ax.set_ylabel(label)
             self.cbar.ax.tick_params(labelsize=self.fontsize)
 
@@ -1510,175 +1659,7 @@ class Vis(QWidget):
             # self.cbar.ax.set_aspect(20)
         else:
             # plt.colorbar(im)
-            self.figure.colorbar(substrate_plot)
-
-        # if (False):
-        #     try:
-        #         substrate_plot = self.ax0.contourf(xgrid, ygrid, M[self.field_index, :].reshape(self.numy, self.numx), levels=levels, extend='both', cmap=self.colormap_dd.value, fontsize=self.fontsize)
-        #     except:
-        #         contour_ok = False
-        #         print('---------got error on contourf 1.')
-        # else:    
-        #     try:
-        #         substrate_plot = self.ax0.contourf(xgrid, ygrid, M[self.field_index, :].reshape(self.numy,self.numx), num_contours, cmap='viridis')  # self.colormap_dd.value)
-        #     except:
-        #         contour_ok = False
-        #         print('---------got error on contourf 2.')
-
-        self.ax0.set_title(self.title_str, fontsize=self.title_fontsize)
-
-        # if (contour_ok):
-        # if (True):
-        #     self.fontsize = 20
-        #     self.ax0.set_title(self.title_str, fontsize=self.fontsize)
-        #     cbar = self.figure.colorbar(substrate_plot, ax=self.ax0)
-        #     cbar.ax.tick_params(labelsize=self.fontsize)
-
-        self.ax0.set_xlim(self.plot_xmin, self.plot_xmax)
-        # self.ax0.set_xlim(-450, self.xmax)
-
-        self.ax0.set_ylim(self.plot_ymin, self.plot_ymax)
-        # self.ax0.set_ylim(0.0, self.ymax)
-        # self.ax0.clf()
-        # self.aspect_ratio = 1.2
-        # ratio_default=(self.ax0.get_xlim()[1]-self.ax0.get_xlim()[0])/(self.ax0.get_ylim()[1]-self.ax0.get_ylim()[0])
-        # ratio_default = (self.plot_xmax - self.plot_xmin) / (self.plot_ymax - self.plot_ymin)
-        # print("ratio_default = ",ratio_default)
-        # self.ax0.set_aspect(ratio_default * self.aspect_ratio)
-        self.ax0.set_aspect(1.0)
-
-        # self.ax0.set_aspect(self.plot_ymin, self.plot_ymax)
-
-    #------------------------------------------------------------
-    def plot_substrate_old(self, frame):
-        # global current_idx, axes_max
-        # global current_frame
-
-        xml_file_root = "output%08d.xml" % frame
-        xml_file = os.path.join(self.output_dir, xml_file_root)
-        if not Path(xml_file).is_file():
-            print("ERROR: file not found",xml_file)
-            return
-
-        # xml_file = os.path.join(self.output_dir, xml_file_root)
-        tree = ET.parse(xml_file)
-        root = tree.getroot()
-    #    print('time=' + root.find(".//current_time").text)
-        mins = float(root.find(".//current_time").text)
-        hrs = int(mins/60)
-        days = int(hrs/24)
-        self.title_str = '%d days, %d hrs, %d mins' % (days,hrs-days*24, mins-hrs*60)
-        print(self.title_str)
-
-        fname = "output%08d_microenvironment0.mat" % frame
-        full_fname = os.path.join(self.output_dir, fname)
-        print("\n    ==>>>>> plot_substrate(): full_fname=",full_fname)
-        if not Path(full_fname).is_file():
-            print("ERROR: file not found",full_fname)
-            return
-
-        info_dict = {}
-        scipy.io.loadmat(full_fname, info_dict)
-        M = info_dict['multiscale_microenvironment']
-        print('plot_substrate: self.field_index=',self.field_index)
-
-        # debug
-        # fsub = M[self.field_index,:]   # 
-        # print("substrate min,max=",fsub.min(), fsub.max())
-
-        print("M.shape = ",M.shape)  # e.g.,  (6, 421875)  (where 421875=75*75*75)
-        # numx = int(M.shape[1] ** (1./3) + 1)
-        # numy = numx
-        # self.numx = 50  # for template model
-        # self.numy = 50
-        # self.numx = 88  # for kidney model
-        # self.numy = 75
-        try:
-            print("self.numx, self.numy = ",self.numx, self.numy )
-        except:
-            print("Error: self.numx, self.numy not defined.")
-            return
-        # nxny = numx * numy
-
-        try:
-            xgrid = M[0, :].reshape(self.numy, self.numx)
-            ygrid = M[1, :].reshape(self.numy, self.numx)
-        except:
-            print("error: cannot reshape ",self.numy, self.numx," for array ",M.shape)
-            return
-
-        zvals = M[self.field_index,:].reshape(self.numy,self.numx)
-        print("zvals.min() = ",zvals.min())
-        print("zvals.max() = ",zvals.max())
-
-        # self.num_contours = 15
-
-        # if (self.colormap_fixed_toggle.value):
-        #     try:
-        #         # vmin = 0
-        #         # vmax = 10
-        #         # levels = MaxNLocator(nbins=30).tick_values(vmin, vmax)
-        #         num_contours = 15
-        #         levels = MaxNLocator(nbins=num_contours).tick_values(self.colormap_min.value, self.colormap_max.value)
-        #         substrate_plot = self.ax0.contourf(xgrid, ygrid, M[self.field_index, :].reshape(self.numy, self.numx), levels=levels, extend='both', cmap=self.colormap_dd.value, fontsize=self.fontsize)
-        #     except:
-        #         contour_ok = False
-        #         # print('got error on contourf 1.')
-        # else:    
-        #     try:
-        #         substrate_plot = self.ax0.contourf(xgrid, ygrid, M[self.field_index, :].reshape(self.numy,self.numx), num_contours, cmap=self.colormap_dd.value)
-        #     except:
-        #         contour_ok = False
-        #             # print('got error on contourf 2.')
-
-        contour_ok = True
-        # if (self.colormap_fixed_toggle.value):
-        # self.field_index = 4
-
-        if (self.fix_cmap_flag):
-            try:
-                # self.fixed_contour_levels = MaxNLocator(nbins=self.num_contours).tick_values(self.cmin_value, self.cmax_value)
-                # substrate_plot = self.ax0.contourf(xgrid, ygrid, M[self.field_index, :].reshape(self.numy, self.numx), levels=levels, extend='both', cmap=self.colormap_dd.value, fontsize=self.fontsize)
-                substrate_plot = self.ax0.contourf(xgrid, ygrid, zvals, self.num_contours, levels=self.fixed_contour_levels, extend='both', cmap='viridis')
-            except:
-                contour_ok = False
-                print('got error on contourf with fixed cmap range.')
-        else:    
-            try:
-                substrate_plot = self.ax0.contourf(xgrid, ygrid, zvals, self.num_contours, cmap='viridis')  # self.colormap_dd.value)
-            except:
-                contour_ok = False
-                print('got error on contourf with dynamic cmap range.')
-
-        # in case we want to plot a "0.0" contour line
-        # if self.field_index > 4:
-        #     self.ax0.contour(xgrid, ygrid, M[self.field_index, :].reshape(self.numy,self.numx), [0.0], linewidths=0.5)
-
-        # Do this funky stuff to prevent the colorbar from shrinking in height with each redraw.
-        # Except it doesn't seem to work when we use fixed ranges on the colorbar?!
-        print("# axes = ",len(self.figure.axes))
-        if len(self.figure.axes) > 1: 
-            pts = self.figure.axes[-1].get_position().get_points()
-            print("type(pts) = ",type(pts))
-            # pts = [[0.78375, 0.11][0.81037234, 0.88]]
-            pts = np.array([[0.78375, 0.11],[0.81037234, 0.88]])
-
-            print("figure.axes pts = ",pts)
-            label = self.figure.axes[-1].get_ylabel()
-            self.figure.axes[-1].remove()  # replace/update the colorbar
-            cax = self.figure.add_axes([pts[0][0],pts[0][1],pts[1][0]-pts[0][0],pts[1][1]-pts[0][1]  ])
-            
-            #rwh
-            # self.cbar = self.figure.colorbar(substrate_plot, cax=cax)
-            # self.cbar.ax.set_ylabel(label)
-            # self.cbar.ax.tick_params(labelsize=self.fontsize)
-
-            # unfortunately the aspect is different between the initial call to colorbar 
-            #   without cax argument. Try to reset it (but still it's somehow different)
-            # self.cbar.ax.set_aspect(20)
-        else:
-            # plt.colorbar(im)
-            self.figure.colorbar(substrate_plot)
+            self.cbar = self.figure.colorbar(substrate_plot)
 
         # if (False):
         #     try:
