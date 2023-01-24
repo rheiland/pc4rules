@@ -244,6 +244,7 @@ class PhysiCellXMLCreator(QWidget):
         self.rules_tab = Rules(self.microenv_tab, self.celldef_tab)
         self.rules_tab.xml_root = self.xml_root
         self.rules_tab.fill_gui()
+        self.celldef_tab.rules_tab = self.rules_tab
         # populate_tree_cell_defs(self.celldef_tab, self.rules_tab, self.skip_validate)
         uep_cell_rules = self.xml_root.find(".//cell_definitions//cell_rules")
         if uep_cell_rules:
