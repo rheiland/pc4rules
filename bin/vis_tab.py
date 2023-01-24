@@ -13,6 +13,7 @@ from matplotlib.collections import LineCollection
 from matplotlib.patches import Circle, Ellipse, Rectangle
 from matplotlib.collections import PatchCollection
 import matplotlib.colors as mplc
+from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
 from matplotlib import gridspec
 from collections import deque
 import glob
@@ -33,6 +34,12 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 # from matplotlib.figure import Figure
+
+class QHLine(QFrame):
+    def __init__(self):
+        super(QHLine, self).__init__()
+        self.setFrameShape(QFrame.HLine)
+        self.setFrameShadow(QFrame.Sunken)
 
 class Vis(QWidget):
 
@@ -64,7 +71,8 @@ class Vis(QWidget):
         self.num_contours = 15
         self.num_contours = 25
         self.num_contours = 50
-        self.fontsize = 9
+        self.fontsize = 7
+        self.label_fontsize = 6
         self.title_fontsize = 10
 
         # self.plot_svg_flag = True
@@ -99,8 +107,11 @@ class Vis(QWidget):
         self.alpha = 0.7
 
         basic_length = 12.0
-        self.figsize_width_substrate = 15.0  # allow extra for colormap
+        self.figsize_width_substrate = 15.0  # allow extra for colormap(s)
         self.figsize_height_substrate = basic_length
+
+        self.cax1 = None
+        self.cax2 = None
 
         self.figsize_width_2Dplot = basic_length
         self.figsize_height_2Dplot = basic_length
@@ -206,6 +217,8 @@ class Vis(QWidget):
         self.last_button.clicked.connect(self.last_plot_cb)
         hbox.addWidget(self.last_button)
 
+        hbox.addStretch(1)  # not sure about this, but keeps buttons shoved to left
+
         self.vbox.addLayout(hbox)
 
         #------
@@ -221,6 +234,7 @@ class Vis(QWidget):
         # controls_hbox.addWidget(self.prepare_button)
 
         #------
+        self.vbox.addWidget(QHLine())
 
         hbox = QHBoxLayout()
         self.cells_checkbox = QCheckBox('cells')
@@ -242,6 +256,7 @@ class Vis(QWidget):
         self.cells_mat_rb.clicked.connect(self.cells_svg_mat_cb)
         hbox.addWidget(self.cells_mat_rb)
         # hbox2.addStretch(1)  # not sure about this, but keeps buttons shoved to left
+        hbox.addStretch(1)  # not sure about this, but keeps buttons shoved to left
         # hbox.addLayout(hbox2) 
 
         self.cell_scalar_combobox = QComboBox()
@@ -266,6 +281,8 @@ class Vis(QWidget):
         self.vbox.addLayout(hbox)
 
         #------------------
+        self.vbox.addWidget(QHLine())
+
         hbox = QHBoxLayout()
         self.substrates_checkbox = QCheckBox('substrates')
         self.substrates_checkbox.setChecked(False)
@@ -275,6 +292,7 @@ class Vis(QWidget):
         hbox.addWidget(self.substrates_checkbox)
 
         hbox.addWidget(self.substrates_combobox)
+        hbox.addStretch(1)  # not sure about this, but keeps buttons shoved to left
 
         self.vbox.addLayout(hbox)
 
@@ -283,7 +301,7 @@ class Vis(QWidget):
         groupbox = QGroupBox()
         # groupbox.setTitle("colorbar")
         # vlayout = QVBoxLayout()
-        groupbox.setLayout(hbox)
+        # groupbox.setLayout(hbox)
         groupbox.setStyleSheet("QGroupBox { border: 1px solid black;}")
         # groupbox.setStyleSheet("QGroupBox::title {subcontrol-origin: margin; left: 7px; padding: 0px 5px 0px 5px;}")
         # groupbox.setStyleSheet("QGroupBox { border: 1px solid black; title: }")
@@ -293,17 +311,18 @@ class Vis(QWidget):
 #     padding: 0px 5px 0px 5px;
 # }
 
-        self.fix_cmap_checkbox = QCheckBox('colorbar')
+        self.fix_cmap_checkbox = QCheckBox('fix')
         self.fix_cmap_flag = False
         self.fix_cmap_checkbox.setEnabled(False)
         self.fix_cmap_checkbox.setChecked(self.fix_cmap_flag)
         self.fix_cmap_checkbox.clicked.connect(self.fix_cmap_toggle_cb)
         hbox.addWidget(self.fix_cmap_checkbox)
 
-        cvalue_width = 70
-        label = QLabel("min")
+        cvalue_width = 60
+        label = QLabel("cmin")
         # label.setFixedWidth(label_width)
         label.setAlignment(QtCore.Qt.AlignCenter)
+        # label.setAlignment(QtCore.Qt.AlignLeft)
         hbox.addWidget(label)
         self.cmin = QLineEdit()
         self.cmin.setEnabled(False)
@@ -315,7 +334,7 @@ class Vis(QWidget):
         self.cmin.setEnabled(False)
         hbox.addWidget(self.cmin)
 
-        label = QLabel("max")
+        label = QLabel("cmax")
         # label.setFixedWidth(label_width)
         label.setAlignment(QtCore.Qt.AlignCenter)
         hbox.addWidget(label)
@@ -328,8 +347,10 @@ class Vis(QWidget):
         self.cmax.setEnabled(False)
         hbox.addWidget(self.cmax)
 
-        # self.vbox.addLayout(hbox)
-        self.vbox.addWidget(groupbox)
+        hbox.addStretch(1)  # not sure about this, but keeps buttons shoved to left
+
+        self.vbox.addLayout(hbox)
+        # self.vbox.addWidget(groupbox)
 
         #-----------
         self.frame_count.textChanged.connect(self.change_frame_count_cb)
@@ -460,6 +481,11 @@ class Vis(QWidget):
             self.plot_cells_svg = True
             self.cell_scalar_combobox.setEnabled(False)
             # self.fix_cmap_checkbox.setEnabled(bval)
+
+            if self.cax2:
+                self.cax2.remove()
+                self.cax2 = None
+
         else:
             self.plot_cells_svg = False
             self.cell_scalar_combobox.setEnabled(True)
@@ -835,8 +861,14 @@ class Vis(QWidget):
         self.cells_svg_rb.setEnabled(bval)
         self.cells_mat_rb.setEnabled(bval)
         self.cells_edge_checkbox.setEnabled(bval)
-        if not bval:
+
+        if not self.cells_checked_flag:
             self.cell_scalar_combobox.setEnabled(False)
+
+            if self.cax2:
+                self.cax2.remove()
+                self.cax2 = None
+
         # print("\n>>> calling update_plots() from "+ inspect.stack()[0][3])
         self.update_plots()
 
@@ -849,6 +881,10 @@ class Vis(QWidget):
         self.substrates_checked_flag = bval
         self.fix_cmap_checkbox.setEnabled(bval)
         self.substrates_combobox.setEnabled(bval)
+
+        if not self.substrates_checked_flag:
+            self.cax1.remove()
+            self.cax1 = None
 
         if not self.plot_xmin:
             self.reset_plot_range()
@@ -1445,11 +1481,7 @@ class Vis(QWidget):
         cell_vol = mcds.get_cell_df()['total_volume']
         print(f'   cell_vol.min(), max() = {cell_vol.min()}, {cell_vol.max()}')
 
-        # static double four_thirds_pi =  4.188790204786391;
         four_thirds_pi =  4.188790204786391
-        # radius = phenotype.volume.total;
-        # radius /= four_thirds_pi;
-        # radius = pow( radius , 0.333333333333333333333333333333333333333 );
         cell_radii = np.divide(cell_vol, four_thirds_pi)
         cell_radii = np.power(cell_radii, 0.333333333333333333333333333333333333333)
 
@@ -1462,74 +1494,43 @@ class Vis(QWidget):
         axes_min = mcds.get_mesh()[0][0][0][0]
         axes_max = mcds.get_mesh()[0][0][-1][0]
 
-        # cell_plot = None
         if (self.cells_edge_checked_flag):
             try:
-                # self.circles(xvals,yvals, s=rvals, color=rgbas, edgecolor='black', linewidth=0.5)
-                # cell_plot = self.circles(xvals,yvals, s=cell_radii, color=cell_scalar, vmin=vmin,vmax=vmax, edgecolor='black', linewidth=0.5)
                 cell_plot = self.circles(xvals,yvals, s=cell_radii, c=cell_scalar, edgecolor='black', linewidth=0.5)
-                # cell_plot = self.circles(xvals,yvals, s=cell_radii, c=cell_scalar, edgecolor='black', linewidth=0.5)
             except (ValueError):
                 print("\n------ ERROR: Exception from circles with edges\n")
                 pass
         else:
-            # self.circles(xvals,yvals, s=rvals, color=rgbas)
-            # cell_plot = self.circles(xvals,yvals, s=cell_radii, c=cell_scalar, vmin=vmin,vmax=vmax)
             cell_plot = self.circles(xvals,yvals, s=cell_radii, c=cell_scalar)
 
-
-        # levels = MaxNLocator(nbins=30).tick_values(vmin, vmax)
-        # cmap2 = plt.get_cmap('viridis')
-        # norm2 = BoundaryNorm(levels, ncolors=cmap2.N, clip=True)
-
-    #     if cbar == None:  # if we always do this, it creates an additional colorbar!
-    # #      cbar = plt.colorbar(cell_plot, boundaries=np.arange(vmin, vmax, 1.0))
-    #         cbar = plt.colorbar(cell_plot)
-    #     else:
-    #         cbar.ax.clear()
-    #         cbar = plt.colorbar(cell_plot, cax=cbar.ax)
-
         print("------- plot_cell_scalar() -------------")
-        print("# axes = ",len(self.figure.axes))
-        if len(self.figure.axes) > 1: 
-            pts = self.figure.axes[-1].get_position().get_points()
-            # print("type(pts) = ",type(pts))
-            pts = np.array([[0.78375, 0.11],[0.81037234, 0.88]])
-
-            print("figure.axes pts = ",pts)
-            # label = self.figure.axes[-1].get_ylabel()
-            # label = cell_scalar_name
-            self.figure.axes[-1].remove()  # replace/update the colorbar
+        num_axes =  len(self.figure.axes)
+        print("# axes = ",num_axes)
+        # if num_axes > 1: 
+        # if self.axis_id_cellscalar:
+        if self.cax2:
+            try:
+                self.cax2.remove()
+            except:
+                pass
+            print("# axes(after cell_scalar remove) = ",len(self.figure.axes))
+            print(" self.figure.axes= ",self.figure.axes)
             #ppp
-            cax2 = self.figure.add_axes([pts[0][0], pts[0][1], pts[1][0]-pts[0][0], pts[1][1]-pts[0][1]])
-            self.cbar2 = self.figure.colorbar(cell_plot, cax=cax2)
-            # self.cbar = self.figure.colorbar(cell_plot, cax=self.cbar.ax)
-            # cbar = plt.colorbar(my_plot, cax=cbar.ax)
-            # self.cbar.ax.clear()
-            self.cbar2.ax.set_ylabel(cell_scalar_name)
+            ax2_divider = make_axes_locatable(self.ax0)
+            self.cax2 = ax2_divider.append_axes("bottom", size="4%", pad="8%")
+            self.cbar2 = self.figure.colorbar(cell_plot, cax=self.cax2, orientation="horizontal")
+            print("\n# axes(redraw cell_scalar) = ",len(self.figure.axes))
+            print(" self.figure.axes= ",self.figure.axes)
+            # self.axis_id_cellscalar = len(self.figure.axes) - 1
             self.cbar2.ax.tick_params(labelsize=self.fontsize)
-
-            # unfortunately the aspect is different between the initial call to colorbar 
-            #   without cax argument. Try to reset it (but still it's somehow different)
-            # self.cbar.ax.set_aspect(20)
+            self.cbar2.ax.set_xlabel(cell_scalar_name)
         else:
-            # plt.colorbar(im)
-            # self.figure.colorbar(cell_plot)
-            self.cbar2 = self.figure.colorbar(cell_plot)
-            # self.figure.colorbar(cell_plot, boundaries=np.arange(vmin, vmax, 1.0))
-
-        # self.ax0.set_title(self.title_str, fontsize=self.title_fontsize)
-
-        # # if (contour_ok):
-        # # if (True):
-        # #     self.fontsize = 20
-        # #     self.ax0.set_title(self.title_str, fontsize=self.fontsize)
-        # #     cbar = self.figure.colorbar(substrate_plot, ax=self.ax0)
-        # #     cbar.ax.tick_params(labelsize=self.fontsize)
-
-        # self.ax0.set_xlim(self.plot_xmin, self.plot_xmax)
-        # self.ax0.set_ylim(self.plot_ymin, self.plot_ymax)
-        # self.ax0.set_aspect(1.0)
+            ax2_divider = make_axes_locatable(self.ax0)
+            self.cax2 = ax2_divider.append_axes("bottom", size="4%", pad="8%")
+            self.cbar2 = self.figure.colorbar(cell_plot, cax=self.cax2, orientation="horizontal")
+            self.cbar2.ax.tick_params(labelsize=self.fontsize)
+            print(" self.figure.axes= ",self.figure.axes)
+            self.cbar2.ax.set_xlabel(cell_scalar_name)
 
     #------------------------------------------------------------
     def plot_substrate(self, frame):
@@ -1561,19 +1562,20 @@ class Vis(QWidget):
         info_dict = {}
         scipy.io.loadmat(full_fname, info_dict)
         M = info_dict['multiscale_microenvironment']
-        print('plot_substrate: self.field_index=',self.field_index)
+        # print('plot_substrate: self.field_index=',self.field_index)
 
         # debug
         # fsub = M[self.field_index,:]   # 
         # print("substrate min,max=",fsub.min(), fsub.max())
 
-        print("M.shape = ",M.shape)  # e.g.,  (6, 421875)  (where 421875=75*75*75)
+        # print("M.shape = ",M.shape)  # e.g.,  (6, 421875)  (where 421875=75*75*75)
         # numx = int(M.shape[1] ** (1./3) + 1)
         # numy = numx
         # self.numx = 50  # for template model
         # self.numy = 50
         # self.numx = 88  # for kidney model
         # self.numy = 75
+
         try:
             print("self.numx, self.numy = ",self.numx, self.numy )
         except:
@@ -1589,8 +1591,8 @@ class Vis(QWidget):
             return
 
         zvals = M[self.field_index,:].reshape(self.numy,self.numx)
-        print("zvals.min() = ",zvals.min())
-        print("zvals.max() = ",zvals.max())
+        # print("zvals.min() = ",zvals.min())
+        # print("zvals.max() = ",zvals.max())
 
         # self.num_contours = 15
 
@@ -1638,62 +1640,27 @@ class Vis(QWidget):
         # Do this funky stuff to prevent the colorbar from shrinking in height with each redraw.
         # Except it doesn't seem to work when we use fixed ranges on the colorbar?!
         print("------- plot_substrate() -------------")
-        print("# axes = ",len(self.figure.axes))
-        if len(self.figure.axes) > 1: 
-            pts = self.figure.axes[-1].get_position().get_points()
-            print("type(pts) = ",type(pts))
-            # pts = [[0.78375, 0.11][0.81037234, 0.88]]
-            pts = np.array([[0.78375, 0.11],[0.81037234, 0.88]])
-
-            print("figure.axes pts = ",pts)
-            label = self.figure.axes[-1].get_ylabel()
-            self.figure.axes[-1].remove()  # replace/update the colorbar
+        num_axes =  len(self.figure.axes)
+        print("# axes = ",num_axes)
+        if self.cax1:
+            self.cax1.remove()  # replace/update the colorbar
+            print("# axes(after substrate remove) = ",len(self.figure.axes))
+            print(" self.figure.axes= ",self.figure.axes)
             #ppp
-            cax1 = self.figure.add_axes([pts[0][0],pts[0][1],pts[1][0]-pts[0][0],pts[1][1]-pts[0][1]  ])
-            self.cbar = self.figure.colorbar(substrate_plot, cax=cax1)
-            self.cbar.ax.set_ylabel(label)
-            self.cbar.ax.tick_params(labelsize=self.fontsize)
-
-            # unfortunately the aspect is different between the initial call to colorbar 
-            #   without cax argument. Try to reset it (but still it's somehow different)
-            # self.cbar.ax.set_aspect(20)
+            ax1_divider = make_axes_locatable(self.ax0)
+            self.cax1 = ax1_divider.append_axes("right", size="4%", pad="2%")
+            self.cbar1 = self.figure.colorbar(substrate_plot, cax=self.cax1)
+            print("\n# axes(redraw substrate) = ",len(self.figure.axes))
+            print(" self.figure.axes= ",self.figure.axes)
+            self.cbar1.ax.tick_params(labelsize=self.fontsize)
         else:
-            # plt.colorbar(im)
-            self.cbar = self.figure.colorbar(substrate_plot)
-
-        # if (False):
-        #     try:
-        #         substrate_plot = self.ax0.contourf(xgrid, ygrid, M[self.field_index, :].reshape(self.numy, self.numx), levels=levels, extend='both', cmap=self.colormap_dd.value, fontsize=self.fontsize)
-        #     except:
-        #         contour_ok = False
-        #         print('---------got error on contourf 1.')
-        # else:    
-        #     try:
-        #         substrate_plot = self.ax0.contourf(xgrid, ygrid, M[self.field_index, :].reshape(self.numy,self.numx), num_contours, cmap='viridis')  # self.colormap_dd.value)
-        #     except:
-        #         contour_ok = False
-        #         print('---------got error on contourf 2.')
+            ax1_divider = make_axes_locatable(self.ax0)
+            self.cax1 = ax1_divider.append_axes("right", size="4%", pad="2%")
+            self.cbar1 = self.figure.colorbar(substrate_plot, cax=self.cax1)
+            self.cbar1.ax.tick_params(labelsize=self.fontsize)
+            print("(init substrate) self.figure.axes= ",self.figure.axes)
 
         self.ax0.set_title(self.title_str, fontsize=self.title_fontsize)
-
-        # if (contour_ok):
-        # if (True):
-        #     self.fontsize = 20
-        #     self.ax0.set_title(self.title_str, fontsize=self.fontsize)
-        #     cbar = self.figure.colorbar(substrate_plot, ax=self.ax0)
-        #     cbar.ax.tick_params(labelsize=self.fontsize)
-
-        self.ax0.set_xlim(self.plot_xmin, self.plot_xmax)
-        # self.ax0.set_xlim(-450, self.xmax)
-
-        self.ax0.set_ylim(self.plot_ymin, self.plot_ymax)
-        # self.ax0.set_ylim(0.0, self.ymax)
-        # self.ax0.clf()
-        # self.aspect_ratio = 1.2
-        # ratio_default=(self.ax0.get_xlim()[1]-self.ax0.get_xlim()[0])/(self.ax0.get_ylim()[1]-self.ax0.get_ylim()[0])
-        # ratio_default = (self.plot_xmax - self.plot_xmin) / (self.plot_ymax - self.plot_ymin)
-        # print("ratio_default = ",ratio_default)
-        # self.ax0.set_aspect(ratio_default * self.aspect_ratio)
+        # self.ax0.set_xlim(self.plot_xmin, self.plot_xmax)
+        # self.ax0.set_ylim(self.plot_ymin, self.plot_ymax)
         self.ax0.set_aspect(1.0)
-
-        # self.ax0.set_aspect(self.plot_ymin, self.plot_ymax)
