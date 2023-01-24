@@ -40,6 +40,8 @@ class QHLine(QFrame):
         super(QHLine, self).__init__()
         self.setFrameShape(QFrame.HLine)
         self.setFrameShadow(QFrame.Sunken)
+        # self.setFrameShadow(QFrame.Plain)
+        self.setStyleSheet("border:1px solid black")
 
 class Vis(QWidget):
 
@@ -162,6 +164,12 @@ class Vis(QWidget):
         self.cmax_value = 1.0
         self.fixed_contour_levels = MaxNLocator(nbins=self.num_contours).tick_values(self.cmin_value, self.cmax_value)
 
+        self.substrates_cbar_combobox = QComboBox()
+        self.substrates_cbar_combobox.addItem("viridis")
+        self.substrates_cbar_combobox.addItem("jet")
+        self.substrates_cbar_combobox.addItem("YlOrRd")
+        self.substrates_cbar_combobox.setEnabled(False)
+
         self.scroll_plot = QScrollArea()  # might contain centralWidget
         self.create_figure()
 
@@ -265,12 +273,6 @@ class Vis(QWidget):
 
         # e.g., dict_keys(['ID', 'position_x', 'position_y', 'position_z', 'total_volume', 'cell_type', 'cycle_model', 'current_phase', 'elapsed_time_in_phase', 'nuclear_volume', 'cytoplasmic_volume', 'fluid_fraction', 'calcified_fraction', 'orientation_x', 'orientation_y', 'orientation_z', 'polarity', 'migration_speed', 'motility_vector_x', 'motility_vector_y', 'motility_vector_z', 'migration_bias', 'motility_bias_direction_x', 'motility_bias_direction_y', 'motility_bias_direction_z', 'persistence_time', 'motility_reserved', 'chemotactic_sensitivities_x', 'chemotactic_sensitivities_y', 'adhesive_affinities_x', 'adhesive_affinities_y', 'dead_phagocytosis_rate', 'live_phagocytosis_rates_x', 'live_phagocytosis_rates_y', 'attack_rates_x', 'attack_rates_y', 'damage_rate', 'fusion_rates_x', 'fusion_rates_y', 'transformation_rates_x', 'transformation_rates_y', 'oncoprotein', 'elastic_coefficient', 'kill_rate', 'attachment_lifetime', 'attachment_rate', 'oncoprotein_saturation', 'oncoprotein_threshold', 'max_attachment_distance', 'min_attachment_distance'])
 
-        self.cell_scalar_combobox.addItem("pressure")
-        self.cell_scalar_combobox.addItem("total_volume")
-        self.cell_scalar_combobox.addItem("current_phase")
-        self.cell_scalar_combobox.setEnabled(False)
-        hbox.addWidget(self.cell_scalar_combobox)
-
 
         self.cells_edge_checkbox = QCheckBox('edge')
         self.cells_edge_checkbox.setChecked(True)
@@ -279,20 +281,39 @@ class Vis(QWidget):
         hbox.addWidget(self.cells_edge_checkbox) 
 
         self.vbox.addLayout(hbox)
+        #------------------
+        hbox = QHBoxLayout()
+        self.cell_scalar_combobox.addItem("pressure")
+        self.cell_scalar_combobox.addItem("total_volume")
+        self.cell_scalar_combobox.addItem("current_phase")
+        self.cell_scalar_combobox.addItem("cell_type")
+        self.cell_scalar_combobox.setEnabled(False)
+        hbox.addWidget(self.cell_scalar_combobox)
+
+        self.cell_scalar_cbar_combobox = QComboBox()
+        self.cell_scalar_cbar_combobox.addItem("viridis")
+        self.cell_scalar_cbar_combobox.addItem("jet")
+        self.cell_scalar_cbar_combobox.addItem("YlOrRd")
+        self.cell_scalar_cbar_combobox.setEnabled(False)
+        hbox.addWidget(self.cell_scalar_cbar_combobox)
+        self.vbox.addLayout(hbox)
 
         #------------------
         self.vbox.addWidget(QHLine())
 
-        hbox = QHBoxLayout()
+        # hbox = QHBoxLayout()
         self.substrates_checkbox = QCheckBox('substrates')
         self.substrates_checkbox.setChecked(False)
         # self.substrates_checkbox.setEnabled(False)
         self.substrates_checkbox.clicked.connect(self.substrates_toggle_cb)
         self.substrates_checked_flag = False
-        hbox.addWidget(self.substrates_checkbox)
+        # hbox.addWidget(self.substrates_checkbox)
+        self.vbox.addWidget(self.substrates_checkbox)
 
+        hbox = QHBoxLayout()
         hbox.addWidget(self.substrates_combobox)
-        hbox.addStretch(1)  # not sure about this, but keeps buttons shoved to left
+        hbox.addWidget(self.substrates_cbar_combobox)
+        # hbox.addStretch(1)  # not sure about this, but keeps buttons shoved to left
 
         self.vbox.addLayout(hbox)
 
@@ -351,6 +372,9 @@ class Vis(QWidget):
 
         self.vbox.addLayout(hbox)
         # self.vbox.addWidget(groupbox)
+
+        #------------------
+        self.vbox.addWidget(QHLine())
 
         #-----------
         self.frame_count.textChanged.connect(self.change_frame_count_cb)
@@ -420,7 +444,14 @@ class Vis(QWidget):
 
         #-------------------
         self.substrates_combobox.currentIndexChanged.connect(self.substrates_combobox_changed_cb)
-        self.cell_scalar_combobox.currentIndexChanged.connect(self.cell_scalar_combobox_changed_cb)
+        # self.substrates_cbar_combobox.currentIndexChanged.connect(self.colorbar_combobox_changed_cb)
+        self.substrates_cbar_combobox.currentIndexChanged.connect(self.update_plots)
+
+        # self.cell_scalar_combobox.currentIndexChanged.connect(self.cell_scalar_combobox_changed_cb)
+        # self.cell_scalar_combobox.currentIndexChanged.connect(self.colorbar_combobox_changed_cb)
+        self.cell_scalar_combobox.currentIndexChanged.connect(self.update_plots)
+        # self.cell_scalar_cbar_combobox.currentIndexChanged.connect(self.colorbar_combobox_changed_cb)
+        self.cell_scalar_cbar_combobox.currentIndexChanged.connect(self.update_plots)
 
         # controls_vbox = QVBoxLayout()
         # controls_vbox.addLayout(controls_hbox)
@@ -480,6 +511,7 @@ class Vis(QWidget):
         if "svg" in radioBtn.text():
             self.plot_cells_svg = True
             self.cell_scalar_combobox.setEnabled(False)
+            self.cell_scalar_cbar_combobox.setEnabled(False)
             # self.fix_cmap_checkbox.setEnabled(bval)
 
             if self.cax2:
@@ -489,6 +521,7 @@ class Vis(QWidget):
         else:
             self.plot_cells_svg = False
             self.cell_scalar_combobox.setEnabled(True)
+            self.cell_scalar_cbar_combobox.setEnabled(True)
         # print("\n>>> calling update_plots() from "+ inspect.stack()[0][3])
         self.update_plots()
 
@@ -618,8 +651,7 @@ class Vis(QWidget):
         # print('field_min_max= ',self.field_min_max)
         # self.substrates_combobox.setCurrentIndex(2)  # not working; gets reset to oxygen somehow after a Run
 
-    def cell_scalar_combobox_changed_cb(self,idx):
-        # print("\n>>> calling update_plots() from "+ inspect.stack()[0][3])
+    def colorbar_combobox_changed_cb(self,idx):
         self.update_plots()
 
     def substrates_combobox_changed_cb(self,idx):
@@ -880,11 +912,15 @@ class Vis(QWidget):
     def substrates_toggle_cb(self,bval):
         self.substrates_checked_flag = bval
         self.fix_cmap_checkbox.setEnabled(bval)
+        self.cmin.setEnabled(bval)
+        self.cmax.setEnabled(bval)
         self.substrates_combobox.setEnabled(bval)
+        self.substrates_cbar_combobox.setEnabled(bval)
 
         if not self.substrates_checked_flag:
-            self.cax1.remove()
-            self.cax1 = None
+            if self.cax1:
+                self.cax1.remove()
+                self.cax1 = None
 
         if not self.plot_xmin:
             self.reset_plot_range()
@@ -999,8 +1035,10 @@ class Vis(QWidget):
         X, Y = np.meshgrid(xlist, ylist)
         Z = np.sqrt(X**2 + Y**2) + 10*np.random.rand()
 
-        self.cmap = plt.cm.get_cmap("viridis")
-        self.mysubstrate = self.ax0.contourf(X, Y, Z, cmap=self.cmap)
+        cbar_name = self.substrates_cbar_combobox.currentText()
+        # self.cmap = plt.cm.get_cmap(cbar_name)  # e.g., 'viridis'
+        # self.mysubstrate = self.ax0.contourf(X, Y, Z, cmap=self.cmap)
+        self.mysubstrate = self.ax0.contourf(X, Y, Z, cmap=cbar_name)
         # if self.field_index > 4:
         #     # plt.contour(xgrid, ygrid, M[self.field_index, :].reshape(self.numy,self.numx), [0.0])
         #     plt.contour(X, Y, Z, [0.0])
@@ -1093,14 +1131,14 @@ class Vis(QWidget):
                 for x_, y_, s_ in zipped]
         collection = PatchCollection(patches, **kwargs)
         if c is not None:
-            print("--- circles(): type(c)=",type(c))
+            # print("--- circles(): type(c)=",type(c))
             c = c.values
-            print("--- circles() (2): type(c)=",type(c))
+            # print("--- circles() (2): type(c)=",type(c))
 
-            print("--- circles(): c=",c)
+            # print("--- circles(): c=",c)
             c = np.broadcast_to(c, zipped.shape).ravel()
             collection.set_array(c)
-            print("--- circles(): vmin,vmax=",vmin,vmax)
+            # print("--- circles(): vmin,vmax=",vmin,vmax)
             collection.set_clim(vmin, vmax)
 
         # ax = plt.gca()
@@ -1456,7 +1494,8 @@ class Vis(QWidget):
         xml_file = os.path.join(self.output_dir, xml_file_root)
         # xml_file = os.path.join("tmpdir", xml_file_root)  # temporary hack
         cell_scalar_name = self.cell_scalar_combobox.currentText()
-        print(f"\n\n   >>>>--------- plot_cell_scalar(): xml_file={xml_file}, scalar={cell_scalar_name}")
+        cbar_name = self.cell_scalar_cbar_combobox.currentText()
+        print(f"\n\n   >>>>--------- plot_cell_scalar(): xml_file={xml_file}, scalar={cell_scalar_name}, cbar={cbar_name}")
         if not Path(xml_file).is_file():
             print("ERROR: file not found",xml_file)
             return
@@ -1496,12 +1535,12 @@ class Vis(QWidget):
 
         if (self.cells_edge_checked_flag):
             try:
-                cell_plot = self.circles(xvals,yvals, s=cell_radii, c=cell_scalar, edgecolor='black', linewidth=0.5)
+                cell_plot = self.circles(xvals,yvals, s=cell_radii, c=cell_scalar, edgecolor='black', linewidth=0.5, cmap=cbar_name)
             except (ValueError):
                 print("\n------ ERROR: Exception from circles with edges\n")
                 pass
         else:
-            cell_plot = self.circles(xvals,yvals, s=cell_radii, c=cell_scalar)
+            cell_plot = self.circles(xvals,yvals, s=cell_radii, c=cell_scalar, cmap=cbar_name)
 
         print("------- plot_cell_scalar() -------------")
         num_axes =  len(self.figure.axes)
@@ -1532,6 +1571,11 @@ class Vis(QWidget):
             print(" self.figure.axes= ",self.figure.axes)
             self.cbar2.ax.set_xlabel(cell_scalar_name)
 
+        self.ax0.set_title(self.title_str, fontsize=self.title_fontsize)
+        self.ax0.set_xlim(self.plot_xmin, self.plot_xmax)
+        self.ax0.set_ylim(self.plot_ymin, self.plot_ymax)
+        self.ax0.set_aspect(1.0)
+
     #------------------------------------------------------------
     def plot_substrate(self, frame):
 
@@ -1541,6 +1585,8 @@ class Vis(QWidget):
         if not Path(xml_file).is_file():
             print("ERROR: file not found",xml_file)
             return
+
+        cbar_name = self.substrates_cbar_combobox.currentText()
 
         # xml_file = os.path.join(self.output_dir, xml_file_root)
         tree = ET.parse(xml_file)
@@ -1622,13 +1668,13 @@ class Vis(QWidget):
             try:
                 # self.fixed_contour_levels = MaxNLocator(nbins=self.num_contours).tick_values(self.cmin_value, self.cmax_value)
                 # substrate_plot = self.ax0.contourf(xgrid, ygrid, M[self.field_index, :].reshape(self.numy, self.numx), levels=levels, extend='both', cmap=self.colormap_dd.value, fontsize=self.fontsize)
-                substrate_plot = self.ax0.contourf(xgrid, ygrid, zvals, self.num_contours, levels=self.fixed_contour_levels, extend='both', cmap='viridis')
+                substrate_plot = self.ax0.contourf(xgrid, ygrid, zvals, self.num_contours, levels=self.fixed_contour_levels, extend='both', cmap=cbar_name)
             except:
                 contour_ok = False
                 print('got error on contourf with fixed cmap range.')
         else:    
             try:
-                substrate_plot = self.ax0.contourf(xgrid, ygrid, zvals, self.num_contours, cmap='viridis')  # self.colormap_dd.value)
+                substrate_plot = self.ax0.contourf(xgrid, ygrid, zvals, self.num_contours, cmap=cbar_name)  # self.colormap_dd.value)
             except:
                 contour_ok = False
                 print('got error on contourf with dynamic cmap range.')
@@ -1661,6 +1707,6 @@ class Vis(QWidget):
             print("(init substrate) self.figure.axes= ",self.figure.axes)
 
         self.ax0.set_title(self.title_str, fontsize=self.title_fontsize)
-        # self.ax0.set_xlim(self.plot_xmin, self.plot_xmax)
-        # self.ax0.set_ylim(self.plot_ymin, self.plot_ymax)
+        self.ax0.set_xlim(self.plot_xmin, self.plot_xmax)
+        self.ax0.set_ylim(self.plot_ymin, self.plot_ymax)
         self.ax0.set_aspect(1.0)
