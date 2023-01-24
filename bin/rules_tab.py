@@ -17,6 +17,29 @@ from PyQt5.QtWidgets import QFrame,QApplication,QWidget,QTabWidget,QLineEdit, QG
 from PyQt5.QtWidgets import QMessageBox
 # from PyQt5.QtGui import QTextEdit
 
+from PyQt5 import QtWidgets
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
+from matplotlib.figure import Figure
+import matplotlib.pyplot as plt
+import numpy as np
+
+
+class RulesPlotWindow(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.layout = QVBoxLayout()
+        self.label = QLabel("Rule Plot")
+        self.layout.addWidget(self.label)
+
+        self.figure = plt.figure()
+        self.canvas = FigureCanvasQTAgg(self.figure)
+        self.canvas.setStyleSheet("background-color:transparent;")
+        self.ax0 = self.figure.add_subplot(111, adjustable='box')
+        self.layout.addWidget(self.canvas)
+
+        self.setLayout(self.layout)
+#---------------------
+
 class QHLine(QFrame):
     def __init__(self):
         super(QHLine, self).__init__()
@@ -43,16 +66,19 @@ class Rules(QWidget):
     def __init__(self, microenv_tab, celldef_tab):
         super().__init__()
 
+        self.rules_plot = None
+
         # self.nanohub_flag = nanohub_flag
         self.nanohub_flag = False
 
         self.microenv_tab = microenv_tab
         self.celldef_tab = celldef_tab
+
         self.max_rule_table_rows = 99
 
         # table columns' indices
         self.rules_celltype_idx = 0
-        self.rules_behavior_idx = 1
+        self.rules_response_idx = 1
         self.rules_minval_idx = 2
         self.rules_baseval_idx = 3
         self.rules_maxval_idx = 4
@@ -146,6 +172,12 @@ class Rules(QWidget):
 
         # hlayout.addWidget(QLabel("                         ")) 
 
+        self.plot_rule_button = QPushButton("Plot")
+        self.plot_rule_button.setStyleSheet("background-color: lightgreen")
+        self.plot_rule_button.clicked.connect(self.plot_rule_cb)
+        hlayout.addWidget(self.plot_rule_button,0) 
+
+        #------------
         hlayout.addStretch(1)
         self.rules_tab_layout.addLayout(hlayout) 
 
@@ -153,16 +185,16 @@ class Rules(QWidget):
         hlayout = QHBoxLayout()
         # hlayout.addStretch(0)
 
-        label = QLabel("Behavior")
+        label = QLabel("Response")
         # label.setAlignment(QtCore.Qt.AlignCenter)
         label.setAlignment(QtCore.Qt.AlignLeft)
         hlayout.addWidget(label) 
 
 
-        self.behavior_dropdown = QComboBox()
-        self.behavior_dropdown.setFixedWidth(300)
-        hlayout.addWidget(self.behavior_dropdown) 
-        # self.behavior_dropdown.currentIndexChanged.connect(self.signal_dropdown_changed_cb)  
+        self.response_dropdown = QComboBox()
+        self.response_dropdown.setFixedWidth(300)
+        hlayout.addWidget(self.response_dropdown) 
+        # self.response_dropdown.currentIndexChanged.connect(self.signal_dropdown_changed_cb)  
 
         self.rules_tab_layout.addLayout(hlayout) 
 
@@ -396,7 +428,7 @@ class Rules(QWidget):
         # header.setSectionResizeMode(8, QHeaderView.ResizeToContents)  # arg, don't work as expected
         # header.setSectionResizeMode(9, QHeaderView.ResizeToContents)
 
-        self.rules_table.setHorizontalHeaderLabels(['CellType','Behavior','Min','Base','Max', 'Signal','Direction','Half-max','Hill power','Apply to dead'])
+        self.rules_table.setHorizontalHeaderLabels(['CellType','Response','Min','Base','Max', 'Signal','Direction','Half-max','Hill power','Apply to dead'])
 
         # Don't like the behavior these offer, e.g., locks down width of 0th column :/
         # header = self.rules_table.horizontalHeader()       
@@ -420,18 +452,18 @@ class Rules(QWidget):
             w_me.wcol = self.rules_celltype_idx
 
 
-            # ------- Behavior
+            # ------- response
             # w_varval = MyQLineEdit('0.0')
             w_me = MyQLineEdit()
             w_me.setFrame(False)
             # item = QTableWidgetItem('')
             w_me.vname = w_me  
             w_me.wrow = irow
-            w_me.wcol = self.rules_behavior_idx
+            w_me.wcol = self.rules_response_idx
             # w_me.idx = irow   # rwh: is .idx used?
             # w_me.setValidator(QtGui.QDoubleValidator())
             # self.rules_table.setItem(irow, self.custom_icol_value, item)
-            self.rules_table.setCellWidget(irow, self.rules_behavior_idx, w_me)
+            self.rules_table.setCellWidget(irow, self.rules_response_idx, w_me)
             # w_varval.textChanged[str].connect(self.custom_data_value_changed)  # being explicit about passing a string 
 
             # ------- Min val
@@ -617,11 +649,55 @@ class Rules(QWidget):
         return
 
     #-----------------------------------------------------------
+    def hill(self, x, half_max = 0.5 , hill_power = 2 ):
+        z = (x / half_max)** hill_power; 
+        return z/(1.0 + z); 
+
+    def update_rule_plot(self):
+        self.rules_plot.ax0.cla()
+        # self.plot_svg(self.current_svg_frame)
+        # self.frame_count.setText(str(self.current_svg_frame))
+        low = 0
+        high = 4
+        # X = np.linspace( low,high, 1001 ); 
+        min_val = float(self.rule_min_val.text())
+        base_val = float(self.rule_base_val.text())
+        max_val = float(self.rule_max_val.text())
+        X = np.linspace(min_val,max_val, 101) 
+
+        half_max = float(self.rule_half_max.text())
+        hill_power = int(self.rule_hill_power.text())
+        Y = self.hill(X, half_max=half_max, hill_power=hill_power)
+        self.rules_plot.ax0.plot(X,Y,'r-')
+        self.rules_plot.ax0.grid()
+        title = "cell type: " + self.celltype_dropdown.currentText()
+        self.rules_plot.ax0.set_xlabel('signal: ' + self.signal_dropdown.currentText())
+        self.rules_plot.ax0.set_ylabel('response: ' + self.response_dropdown.currentText())
+        self.rules_plot.ax0.set_title(title, fontsize=10)
+        self.rules_plot.canvas.update()
+        self.rules_plot.canvas.draw()
+
+    def plot_rule_cb(self):
+        if not self.rules_plot:
+            self.rules_plot = RulesPlotWindow()
+            # self.rules_plot.ax0.plot([0,1,2,3,4], [10,1,20,3,40])
+            self.update_rule_plot()
+            self.rules_plot.show()
+        else:
+            self.update_rule_plot()
+            self.rules_plot.show()
+
+        # self.myscroll.setWidget(self.canvas) # self.config_params = QWidget()
+        # self.rules_plot.ax0.plot([0,1,2,3,4], [10,1,20,3,40])
+        # self.rules_plot.layout.addWidget(self.canvas)
+        return
+
+    #-----------------------------------------------------------
     def add_rule_cb(self):
         # old: create csv string
         rule_str = self.celltype_dropdown.currentText()
         rule_str += ','
-        rule_str += self.behavior_dropdown.currentText()
+        rule_str += self.response_dropdown.currentText()
         rule_str += ','
         rule_str += self.rule_min_val.text()
         rule_str += ','
@@ -646,7 +722,7 @@ class Rules(QWidget):
         irow = self.num_rules
         print("add_rule_cb():self.num_rules= ",self.num_rules)
         self.rules_table.cellWidget(irow, self.rules_celltype_idx).setText( self.celltype_dropdown.currentText() )
-        self.rules_table.cellWidget(irow, self.rules_behavior_idx).setText( self.behavior_dropdown.currentText() )
+        self.rules_table.cellWidget(irow, self.rules_response_idx).setText( self.response_dropdown.currentText() )
         self.rules_table.cellWidget(irow, self.rules_minval_idx).setText( self.rule_min_val.text() )
         self.rules_table.cellWidget(irow, self.rules_baseval_idx).setText( self.rule_base_val.text() )
         self.rules_table.cellWidget(irow, self.rules_maxval_idx).setText( self.rule_max_val.text() )
@@ -684,18 +760,18 @@ class Rules(QWidget):
             w_me.wrow = irow
             w_me.wcol = self.rules_celltype_idx
 
-            # ------- Behavior
+            # ------- response
             # w_varval = MyQLineEdit('0.0')
             w_me = MyQLineEdit()
             w_me.setFrame(False)
             # item = QTableWidgetItem('')
             w_me.vname = w_me  
             w_me.wrow = irow
-            w_me.wcol = self.rules_behavior_idx
+            w_me.wcol = self.rules_response_idx
             # w_me.idx = irow   # rwh: is .idx used?
             # w_me.setValidator(QtGui.QDoubleValidator())
             # self.rules_table.setItem(irow, self.custom_icol_value, item)
-            self.rules_table.setCellWidget(irow, self.rules_behavior_idx, w_me)
+            self.rules_table.setCellWidget(irow, self.rules_response_idx, w_me)
             # w_varval.textChanged[str].connect(self.custom_data_value_changed)  # being explicit about passing a string 
 
             # ------- Min val
@@ -810,7 +886,7 @@ class Rules(QWidget):
         for irow in range(row, self.max_rule_table_rows):
             # print("---- decrement wrow in irow=",irow)
             # self.rules_celltype_idx = 0
-            # self.rules_behavior_idx = 1
+            # self.rules_response_idx = 1
             self.rules_table.cellWidget(irow,self.rules_celltype_idx).wrow -= 1  # sufficient to only decr the "name" column
 
             # print(f"   after removing {varname}, master_custom_var_d= ",self.master_custom_var_d)
@@ -878,7 +954,7 @@ class Rules(QWidget):
                 # print("rules_tab.py: save_rules_cb(): self.num_rules= ",self.num_rules)
                 for irow in range(self.num_rules):
         # self.rules_celltype_idx = 0
-        # self.rules_behavior_idx = 1
+        # self.rules_response_idx = 1
         # self.rules_minval_idx = 2
         # self.rules_baseval_idx = 3
         # self.rules_maxval_idx = 4
@@ -889,7 +965,7 @@ class Rules(QWidget):
         # self.rules_applydead_idx = 9
                     rule_str = self.rules_table.cellWidget(irow, self.rules_celltype_idx).text()
                     rule_str += ','
-                    rule_str += self.rules_table.cellWidget(irow, self.rules_behavior_idx).text()
+                    rule_str += self.rules_table.cellWidget(irow, self.rules_response_idx).text()
                     rule_str += ','
                     rule_str += self.rules_table.cellWidget(irow, self.rules_minval_idx).text()
                     rule_str += ','
@@ -909,7 +985,7 @@ class Rules(QWidget):
 
                     # rule_str = self.celltype_dropdown.currentText()
                     # rule_str += ','
-                    # rule_str += self.behavior_dropdown.currentText()
+                    # rule_str += self.response_dropdown.currentText()
                     # rule_str += ','
                     # rule_str += self.rule_min_val.text()
                     # rule_str += ','
@@ -974,39 +1050,39 @@ class Rules(QWidget):
             else:
                 substrates.append(key)
 
-        #----- behaviors  (rwh TODO: add dict for default params for each entry)
+        #----- responses  (rwh TODO: add dict for default params for each entry)
         for s in substrates:
-            self.behavior_dropdown.addItem(s + " secretion")
+            self.response_dropdown.addItem(s + " secretion")
         for s in substrates:
-            self.behavior_dropdown.addItem(s + " secretion target")
+            self.response_dropdown.addItem(s + " secretion target")
         for s in substrates:
-            self.behavior_dropdown.addItem(s + " uptake")
+            self.response_dropdown.addItem(s + " uptake")
         for s in substrates:
-            self.behavior_dropdown.addItem(s + " export")
-        self.behavior_dropdown.addItem("cycle entry")
+            self.response_dropdown.addItem(s + " export")
+        self.response_dropdown.addItem("cycle entry")
         for idx in range(6):
-            self.behavior_dropdown.addItem("exit from cycle phase " + str(idx))
-        self.behavior_dropdown.addItem("apoptosis")
-        self.behavior_dropdown.addItem("necrosis")
-        self.behavior_dropdown.addItem("migration speed")
-        self.behavior_dropdown.addItem("migration bias")
-        self.behavior_dropdown.addItem("migration persistence time")
+            self.response_dropdown.addItem("exit from cycle phase " + str(idx))
+        self.response_dropdown.addItem("apoptosis")
+        self.response_dropdown.addItem("necrosis")
+        self.response_dropdown.addItem("migration speed")
+        self.response_dropdown.addItem("migration bias")
+        self.response_dropdown.addItem("migration persistence time")
         for s in substrates:
-            self.behavior_dropdown.addItem("chemotactic response to " + s)
-        self.behavior_dropdown.addItem("cell-cell adhesion")
-        self.behavior_dropdown.addItem("cell-cell adhesion elastic constant")
+            self.response_dropdown.addItem("chemotactic response to " + s)
+        self.response_dropdown.addItem("cell-cell adhesion")
+        self.response_dropdown.addItem("cell-cell adhesion elastic constant")
         for ct in self.celldef_tab.param_d.keys():
-            self.behavior_dropdown.addItem("adhesive affinity to " + ct)
-        self.behavior_dropdown.addItem("relative maximum adhesion distance")
-        self.behavior_dropdown.addItem("cell-cell repulsion")
-        self.behavior_dropdown.addItem("cell-BM adhesion")
-        self.behavior_dropdown.addItem("cell-BM repulsion")
-        self.behavior_dropdown.addItem("phagocytose dead cell")
+            self.response_dropdown.addItem("adhesive affinity to " + ct)
+        self.response_dropdown.addItem("relative maximum adhesion distance")
+        self.response_dropdown.addItem("cell-cell repulsion")
+        self.response_dropdown.addItem("cell-BM adhesion")
+        self.response_dropdown.addItem("cell-BM repulsion")
+        self.response_dropdown.addItem("phagocytose dead cell")
         for ct in self.celldef_tab.param_d.keys():
-            self.behavior_dropdown.addItem("phagocytose " + ct)
+            self.response_dropdown.addItem("phagocytose " + ct)
         for adj in ["phagocytose ","attack ","fuse to ","transform to "]:
             for ct in self.celldef_tab.param_d.keys():
-                self.behavior_dropdown.addItem(adj + ct)
+                self.response_dropdown.addItem(adj + ct)
             
             
 

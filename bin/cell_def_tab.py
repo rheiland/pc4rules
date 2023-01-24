@@ -95,7 +95,8 @@ class CellDef(QWidget):
             self.row_color1 = "background-color: darkslategray"  # = rgb( 47, 79, 79)
             self.row_color2 =  "background-color: rgb( 99, 99, 10)"
 
-        self.ics_tab = None
+        self.ics_tab = None  # set in studio.py
+        self.rules_tab = None # set in studio.py
 
         self.current_cell_def = None
         self.cell_adhesion_affinity_celltype = None
@@ -470,6 +471,9 @@ class CellDef(QWidget):
         # ICs
         if self.ics_tab:
             self.ics_tab.celltype_combobox.removeItem(item_idx)
+        # Rules
+        if self.rules_tab:
+            self.rules_tab.celltype_combobox.removeItem(item_idx)
 
         # But ALSO remove from the dicts:
         logging.debug(f'Also delete {self.param_d[self.current_cell_def]} from dicts')
@@ -5403,6 +5407,8 @@ class CellDef(QWidget):
 
         if self.ics_tab:
             self.ics_tab.celltype_combobox.addItem(name)
+        if self.rules_tab:
+            self.rules_tab.celltype_combobox.addItem(name)
 
     #-----------------------------------------------------------------------------------------
     # def delete_substrate(self, item_idx):
@@ -5551,8 +5557,11 @@ class CellDef(QWidget):
                 self.cell_transformation_dropdown.setItemText(idx, new_name)
             if old_name == self.cell_adhesion_affinity_dropdown.itemText(idx):
                 self.cell_adhesion_affinity_dropdown.setItemText(idx, new_name)
+
             if self.ics_tab and (old_name == self.ics_tab.celltype_combobox.itemText(idx)):
                 self.ics_tab.celltype_combobox.setItemText(idx, new_name)
+            if self.rules_tab and (old_name == self.rules_tab.celltype_combobox.itemText(idx)):
+                self.rules_tab.celltype_combobox.setItemText(idx, new_name)
 
         # 2) OMG, also update all param_d dicts that involve cell def names
         logging.debug(f'--- renaming all dicts with cell defs')
