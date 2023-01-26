@@ -27,7 +27,7 @@
 	</parallel> 
 	
 	<save>
-		<folder>.</folder>  
+		<folder>tmpdir</folder>  
 
 		<full_data>
 			<interval units="min">60</interval>
@@ -215,8 +215,8 @@
         </custom_data>
       </cell_definition>
 
-      <cell_rules type="csv" enabled="false">
-        <folder>../data</folder>
+      <cell_rules type="csv" enabled="true">
+        <folder>data</folder>
         <filename>tumor_rules.csv</filename>
         </cell_rules>
 
@@ -224,8 +224,8 @@
 	
 	<initial_conditions>
 		<cell_positions type="csv" enabled="true">
-			<folder>..</folder>
-			<filename>cells.csv</filename>
+			<folder>data</folder>
+			<filename>tumor_cells.csv</filename>
 		</cell_positions>
 	</initial_conditions>	
 	

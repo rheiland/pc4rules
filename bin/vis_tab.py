@@ -135,7 +135,9 @@ class Vis(QWidget):
         #     self.output_dir = "."   # for nanoHUB
         # else:
         #     self.output_dir = "tmpdir"
-        self.output_dir = "."   # for nanoHUB
+
+        # stop the insanity!
+        self.output_dir = "."   # for nanoHUB  (overwritten in studio.py, based on config_tab)
         # self.output_dir = "tmpdir"   # for nanoHUB
 
 
@@ -817,13 +819,24 @@ class Vis(QWidget):
         # print('self.output_dir = ',self.output_dir)
         # xml_file = Path(self.output_dir, "initial.xml")
         # xml_files = glob.glob('tmpdir/output*.xml')
-        xml_files = glob.glob('output*.xml')
-        if len(xml_files) == 0:
+
+        # stop the insanity (dir structure on nanoHUB vs. local)
+        # xml_pattern = "output*.xml"
+        xml_pattern = self.output_dir + "/" + "output*.xml"
+        xml_files = glob.glob(xml_pattern)
+        num_xml = len(xml_files)
+        if num_xml == 0:
+            print("last_plot_cb(): WARNING: no output*.xml files present")
             return
+
         xml_files.sort()
-        svg_files = glob.glob('snapshot*.svg')   # rwh: problematic with celltypes3 due to snapshot_standard*.svg and snapshot<8digits>.svg
+        # print('last_plot_cb():xml_files (after sort)= ',xml_files)
+
+        # svg_pattern = "snapshot*.svg"
+        svg_pattern = self.output_dir + "/" + "snapshot*.svg"
+        svg_files = glob.glob(svg_pattern)   # rwh: problematic with celltypes3 due to snapshot_standard*.svg and snapshot<8digits>.svg
         svg_files.sort()
-        # print('xml_files = ',xml_files)
+        # print('last_plot_cb(): svg_files (after sort)= ',svg_files)
         num_xml = len(xml_files)
         # print('svg_files = ',svg_files)
         num_svg = len(svg_files)

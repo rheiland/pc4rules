@@ -201,6 +201,8 @@ class PhysiCellXMLCreator(QWidget):
         self.config_tab = Config(self.nanohub_flag)
         self.config_tab.xml_root = self.xml_root
         self.config_tab.fill_gui()
+        self.output_dir = self.config_tab.folder.text()
+        print("studio.py: self.output_dir=",self.output_dir)
 
         self.microenv_tab = SubstrateDef()
         self.microenv_tab.xml_root = self.xml_root
@@ -270,6 +272,7 @@ class PhysiCellXMLCreator(QWidget):
         print("studio.py: self.homedir = ",self.homedir)
         self.run_tab.homedir = self.homedir
         self.run_tab.rules_tab = self.rules_tab
+        self.rules_tab.homedir = self.homedir
         if not self.nanohub_flag:
             self.run_tab.config_file = self.config_file
             self.run_tab.config_xml_name.setText(self.config_file)
@@ -305,7 +308,11 @@ class PhysiCellXMLCreator(QWidget):
         if show_vis_flag:
             print("studio.py: creating vis_tab (Plot tab) and legend_tab")
             self.vis_tab = Vis(self.nanohub_flag)
+            # self.vis_tab.output_dir = self.output_dir
+            # self.vis_tab.reset_plot_range()
+
             self.legend_tab = Legend(self.nanohub_flag)
+            self.legend_tab.output_dir = self.output_dir
             # self.vis_tab.setEnabled(False)
             # self.vis_tab.nanohub_flag = self.nanohub_flag
             # self.vis_tab.xml_root = self.xml_root
@@ -321,6 +328,8 @@ class PhysiCellXMLCreator(QWidget):
             # self.vis_tab.substrates_cbox_changed_cb(2)   # doesn't accomplish it; need to set index, but not sure when
             self.vis_tab.init_plot_range(self.config_tab)
             self.vis_tab.show_edge = False
+
+            self.vis_tab.output_dir = self.output_dir
 
 
         vlayout.addWidget(self.tabWidget)

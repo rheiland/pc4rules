@@ -241,9 +241,26 @@ class Config(QWidget):
         idx_row += 1
         self.config_tab_layout.addWidget(label, idx_row,0,1,20) # w, row, column, rowspan, colspan
 
-        self.cells_csv = QCheckBox("cells.csv")
+        # self.cells_csv = QCheckBox("cells.csv")
+        self.cells_csv = QCheckBox("enable")
         idx_row += 1
         self.config_tab_layout.addWidget(self.cells_csv, idx_row,1,1,1) # w, row, column, rowspan, colspan
+
+        label = QLabel("folder")
+        label_width = 110
+        label_width = 60
+        self.config_tab_layout.addWidget(label, idx_row,2,1,1) # w, row, column, rowspan, colspan
+
+        self.cells_folder = QLineEdit()
+        self.config_tab_layout.addWidget(self.cells_folder, idx_row,3,1,1) # w, row, column, rowspan, colspan
+
+        label = QLabel("file")
+        label_width = 110
+        label_width = 60
+        self.config_tab_layout.addWidget(label, idx_row,4,1,1) # w, row, column, rowspan, colspan
+
+        self.cells_file = QLineEdit()
+        self.config_tab_layout.addWidget(self.cells_file, idx_row,5,1,1) # w, row, column, rowspan, colspan
 
 
         self.insert_hacky_blank_lines(self.config_tab_layout)
@@ -314,6 +331,23 @@ class Config(QWidget):
             self.cells_csv.setChecked(True)
         else:
             self.cells_csv.setChecked(False)
+
+        # stop the insanity
+        print("\n\n----------\nconfig_tab.py:  file_gui(): setting cells folder and file")
+        uep = self.xml_root.find(".//initial_conditions//cell_positions//folder")
+        if uep is not None:
+            print("config_tab.py:  file_gui(): setting cells folder")
+            self.cells_folder.setText(uep.text)
+        else:
+            self.cells_folder.setText(".")
+
+        uep = self.xml_root.find(".//initial_conditions//cell_positions//filename")
+        if uep is not None:
+            print("config_tab.py:  file_gui(): setting cells file")
+            self.cells_file.setText(uep.text)
+        else:
+            self.cells_file.setText("cells.csv")
+        # sys.exit()
 
 
 
@@ -407,7 +441,10 @@ class Config(QWidget):
             self.xml_root.find(".//initial_conditions//cell_positions").attrib['enabled'] = 'false'
 
         # rwh: TODO: resolve the location of the folder (and filename) for the cells .csv
-        self.xml_root.find(".//initial_conditions//cell_positions/folder").text = '..'
+        # stop the insanity!
+        # self.xml_root.find(".//initial_conditions//cell_positions/folder").text = '..'
+        self.xml_root.find(".//initial_conditions//cell_positions/folder").text = self.cells_folder.text()
+        self.xml_root.find(".//initial_conditions//cell_positions/filename").text = self.cells_file.text()
         # if self.csv_rb1.isChecked():
         #     self.xml_root.find(".//initial_conditions//cell_positions/filename").text = 'all_cells.csv'
         # else:
