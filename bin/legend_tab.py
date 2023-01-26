@@ -29,6 +29,7 @@ class Legend(QWidget):
         super().__init__()
 
         # self.doc_absolute_path = doc_absolute_path
+        self.output_dir = None
 
         self.process = None
         
@@ -69,18 +70,24 @@ class Legend(QWidget):
         self.layout.addWidget(self.scroll)
 
     def reload_legend(self):
-        print('---------reload_legend(): cwd = self.output_dir = ',os.getcwd())
-        self.output_dir = os.getcwd()
-        print('          self.output_dir = ',self.output_dir)
+        # stop the insanity!
+        # print('---------reload_legend(): cwd = self.output_dir = ',os.getcwd())
+        # self.output_dir = os.getcwd()
+        print('          self.output_dir = ',self.output_dir)   # set in studio.py
 
         for idx in range(6):
             print("waiting for creation of legend.svg ...",idx)
-            path = Path("legend.svg")
+            # stop the insanity!
+            fname = os.path.join(self.output_dir,"legend.svg")
+            # path = Path("legend.svg")
+            path = Path(fname)
             if path.is_file():
-                self.svgView.load("legend.svg")
+                # self.svgView.load("legend.svg")
+                self.svgView.load(fname)
                 break
             else:
-                path = Path("legend.svg")
+                # path = Path("legend.svg")
+                path = Path(fname)
                 time.sleep(1)
         # try:
         #     self.svg.load("legend.svg")

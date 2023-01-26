@@ -13,7 +13,7 @@
 	</domain>
 	
 	<overall>
-		<max_time units="min">120</max_time> 
+		<max_time units="min">720</max_time> 
 		<time_units>min</time_units>
 		<space_units>micron</space_units>
 	
@@ -27,15 +27,15 @@
 	</parallel> 
 	
 	<save>
-		<folder>.</folder>  
+		<folder>tmpdir</folder>  
 
 		<full_data>
-			<interval units="min">30</interval>
+			<interval units="min">60</interval>
 			<enable>true</enable>
 		</full_data>
 		
 		<SVG>
-			<interval units="min">30</interval>
+			<interval units="min">60</interval>
 			<enable>true</enable>
 		</SVG>
 		
@@ -224,8 +224,8 @@
 	
 	<initial_conditions>
 		<cell_positions type="csv" enabled="true">
-			<folder>..</folder>
-			<filename>cells.csv</filename>
+			<folder>data</folder>
+			<filename>tumor_cells.csv</filename>
 		</cell_positions>
 	</initial_conditions>	
 	

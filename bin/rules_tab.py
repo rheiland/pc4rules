@@ -70,6 +70,7 @@ class Rules(QWidget):
 
         # self.nanohub_flag = nanohub_flag
         self.nanohub_flag = False
+        self.homedir = '.'  # reset in studio.py
 
         self.microenv_tab = microenv_tab
         self.celldef_tab = celldef_tab
@@ -930,6 +931,14 @@ class Rules(QWidget):
             #     self.run_tab.config_xml_name.setText(self.current_xml_file)
             # self.show_sample_model()
             # self.fill_gui()
+
+            # arg! how does it not catch this as an invalid file above??
+            # in fill_rules():  full_rules_fname= /Users/heiland/git/data/tumor_rules.csv
+            print(f'load_rules_cb():  (guess) calling fill_rules() with ={full_path_rules_name}')
+            # if not self.nanohub_flag:
+            #     full_path_rules_name = os.path.abspath(os.path.join(self.homedir,'tmpdir',folder_name, file_name))
+            #     print(f'load_rules_cb():  NOW calling fill_rules() with ={full_path_rules_name}')
+
             self.fill_rules(full_path_rules_name)
 
         else:
@@ -1145,6 +1154,13 @@ class Rules(QWidget):
             else:
                 self.rules_enabled.setChecked(False)
 
+            print(f'rules_tab.py: fill_gui()----- calling fill_rules() with  full_rules_fname=  {full_rules_fname}')
+            # if not self.nanohub_flag:
+            #     full_path_rules_name = os.path.abspath(os.path.join(self.homedir,'tmpdir',folder_name, file_name))
+            #     print(f'load_rules_cb():  fill_gui()-- NOW calling fill_rules() with ={full_path_rules_name}')
+            #     self.fill_rules(full_path_rules_name)
+            # else:
+            #     self.fill_rules(full_rules_fname)
             self.fill_rules(full_rules_fname)
 
             # if os.path.isfile(full_rules_fname):

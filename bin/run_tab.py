@@ -212,8 +212,11 @@ class RunModel(QWidget):
             # print("run_tab.py: chdir to ",tdir)
             # if self.nanohub_flag:
                 # os.chdir(tdir)   # run exec from tmpdir on nanoHUB (but from root on desktop!)
-            os.chdir(tdir)   # run exec from output dir (e.g., /tmpdir on nanoHUB)
-            print("run_tab.py:  chdir to tdir= ",tdir)
+
+
+            # stop the insanity!
+            # os.chdir(tdir)   # run exec from output dir (e.g., /tmpdir on nanoHUB)
+            # print("run_tab.py:  chdir to tdir= ",tdir)
 
         auto_load_params = True
         # if auto_load_params:
@@ -260,9 +263,35 @@ class RunModel(QWidget):
                 self.p.start("submit",["--local",exec_str,xml_str])
             else:
                 logging.debug(f'\nrun_tab.py: running: {exec_str}, {xml_str}')
-                exec_str_rel = os.path.join('..',exec_str)
-                xml_str_abs = os.path.abspath(os.path.join('..',xml_str))
+                # exec_str_rel = os.path.join('..',exec_str)
+
+                # stop the insanity
+                # exec_str_rel = os.path.join('..',exec_str)
+                # xml_str_abs = os.path.abspath(os.path.join('..',xml_str))
+                exec_str_rel = exec_str
+                xml_str_abs = os.path.abspath(xml_str)
                 # print(f'\nrun_tab.py: running: {exec_str}, {xml_str}')
+
+                # NB: assuming Rules are enabled!
+                rules_folder_name = self.xml_root.find(".//cell_definitions//cell_rules//folder").text
+                print(f'\nrun_tab.py: rules folder= {rules_folder_name}')
+                rules_file_name = self.xml_root.find(".//cell_definitions//cell_rules//filename").text
+                print(f'\nrun_tab.py: rules file= {rules_file_name}')
+                # self.pmb_root_dir = os.path.realpath(os.path.join(os.path.dirname(__file__), '..'))
+                # full_rules_filename = os.path.realpath(os.path.join(rules_folder_name, rules_file_name))
+                full_rules_filename = os.path.realpath(os.path.join(self.homedir,rules_folder_name, rules_file_name))
+                print(f'\nrun_tab.py: full_rules_filename= {full_rules_filename}')
+
+                if not os.path.isfile(full_rules_filename):
+                    msgBox = QMessageBox()
+                    msgBox.setIcon(QMessageBox.Information)
+                    msg = "From " + os.getcwd() + " invalid rules " + full_rules_filename
+                    print(msg)
+                    msgBox.setText(msg)
+                    msgBox.setStandardButtons(QMessageBox.Ok)
+                    msgBox.exec()
+                    return
+
                 print(f'\nrun_tab.py: running: {exec_str_rel}, {xml_str_abs}')
                 # self.p.start(exec_str, [xml_str])
                 self.p.start(exec_str_rel, [xml_str_abs])
