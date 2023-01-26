@@ -343,7 +343,7 @@ class PhysiCellXMLCreator(QWidget):
             self.tabWidget.setCurrentIndex(0)  # About
 
         # self.tabWidget.setCurrentIndex(5)  # rwh hack/debug/default
-        self.tabWidget.setCurrentIndex(7)  # Run
+        # self.tabWidget.setCurrentIndex(7)  # Run
         # self.tabWidget.setCurrentIndex(8)  # Plot
 
 
