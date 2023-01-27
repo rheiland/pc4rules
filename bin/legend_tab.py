@@ -73,7 +73,7 @@ class Legend(QWidget):
         # stop the insanity!
         # print('---------reload_legend(): cwd = self.output_dir = ',os.getcwd())
         # self.output_dir = os.getcwd()
-        print('          self.output_dir = ',self.output_dir)   # set in studio.py
+        print('reload_legend():   self.output_dir = ',self.output_dir)   # set in studio.py
 
         for idx in range(6):
             print("waiting for creation of legend.svg ...",idx)

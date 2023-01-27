@@ -27,7 +27,7 @@
 	</parallel> 
 	
 	<save>
-		<folder>.</folder>  
+		<folder>output_ohsu</folder>  
 
 		<full_data>
 			<interval units="min">60</interval>
@@ -217,7 +217,7 @@
               <use_2D>true</use_2D>
               <chemotaxis>
                 <enabled>true</enabled>
-                <substrate>debris</substrate>
+                <substrate>oxygen</substrate>
                 <direction>1</direction>
               </chemotaxis>
               <advanced_chemotaxis>
@@ -306,7 +306,7 @@
 
           </phenotype>
         <custom_data>
-          <IL12 units="dimensionless" conserved="false" description="">0</IL12>
+          <IL12 conserved="false" units="dimensionless" description="">0</IL12>
         </custom_data>
       </cell_definition>
 
@@ -483,7 +483,7 @@
 
           </phenotype>
         <custom_data>
-          <IL12 units="dimensionless" conserved="false" description="">0</IL12>
+          <IL12 conserved="false" units="dimensionless" description="">0</IL12>
         </custom_data>
       </cell_definition>
 
@@ -660,7 +660,7 @@
 
           </phenotype>
         <custom_data>
-          <IL12 units="dimensionless" conserved="false" description="">0</IL12>
+          <IL12 conserved="false" units="dimensionless" description="">0</IL12>
         </custom_data>
       </cell_definition>
 
@@ -837,7 +837,7 @@
 
           </phenotype>
         <custom_data>
-          <IL12 units="dimensionless" conserved="false" description="">0</IL12>
+          <IL12 conserved="false" units="dimensionless" description="">0</IL12>
         </custom_data>
       </cell_definition>
 
@@ -1014,7 +1014,7 @@
 
           </phenotype>
         <custom_data>
-          <IL12 units="dimensionless" conserved="false" description="">0</IL12>
+          <IL12 conserved="false" units="dimensionless" description="">0</IL12>
         </custom_data>
       </cell_definition>
 
@@ -1191,7 +1191,7 @@
 
           </phenotype>
         <custom_data>
-          <IL12 units="dimensionless" conserved="false" description="">0</IL12>
+          <IL12 conserved="false" units="dimensionless" description="">0</IL12>
         </custom_data>
       </cell_definition>
 
@@ -1203,9 +1203,9 @@
       </cell_definitions>
 	
 	<initial_conditions>
-		<cell_positions type="csv" enabled="false">
-			<folder>./config</folder>
-			<filename>cells.csv</filename>
+		<cell_positions type="csv" enabled="true">
+			<folder>./data</folder>
+			<filename>cells_ohsu.csv</filename>
 		</cell_positions>
 
 	</initial_conditions>	
