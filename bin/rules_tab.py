@@ -149,13 +149,13 @@ class Rules(QWidget):
         # hlayout.addWidget(label,1)
         hlayout.addWidget(label)
 
-        self.celltype_dropdown = QComboBox()
-        # self.celltype_dropdown.setFixedWidth(300)
-        # self.celltype_dropdown.setAlignment(QtCore.Qt.AlignLeft)
-        # hlayout.addWidget(self.celltype_dropdown,1) # w, expand, align
-        # hlayout.addWidget(self.celltype_dropdown, 0) # w, expand, align
-        hlayout.addWidget(self.celltype_dropdown) # w, expand, align
-        # hlayout.addWidget(self.celltype_dropdown,0,Qt.AlignLeft) # w, expand, align
+        self.celltype_combobox = QComboBox()
+        # self.celltype_combobox.setFixedWidth(300)
+        # self.celltype_combobox.setAlignment(QtCore.Qt.AlignLeft)
+        # hlayout.addWidget(self.celltype_combobox,1) # w, expand, align
+        # hlayout.addWidget(self.celltype_combobox, 0) # w, expand, align
+        hlayout.addWidget(self.celltype_combobox) # w, expand, align
+        # hlayout.addWidget(self.celltype_combobox,0,Qt.AlignLeft) # w, expand, align
         # hlayout.addLayout(hbox1,1) # w, expand, align
         # hlayout.addLayout(hbox1,0) # w, expand, align
         # hlayout.addLayout(hbox1) # w, expand, align
@@ -192,10 +192,10 @@ class Rules(QWidget):
         hlayout.addWidget(label) 
 
 
-        self.response_dropdown = QComboBox()
-        self.response_dropdown.setFixedWidth(300)
-        hlayout.addWidget(self.response_dropdown) 
-        # self.response_dropdown.currentIndexChanged.connect(self.signal_dropdown_changed_cb)  
+        self.response_combobox = QComboBox()
+        self.response_combobox.setFixedWidth(300)
+        hlayout.addWidget(self.response_combobox) 
+        # self.response_combobox.currentIndexChanged.connect(self.signal_combobox_changed_cb)  
 
         self.rules_tab_layout.addLayout(hlayout) 
 
@@ -241,18 +241,18 @@ class Rules(QWidget):
         label.setAlignment(QtCore.Qt.AlignRight)
         hlayout.addWidget(label) 
 
-        self.signal_dropdown = QComboBox()
-        self.signal_dropdown.setFixedWidth(300)
-        self.signal_dropdown.currentIndexChanged.connect(self.signal_dropdown_changed_cb)  
-        hlayout.addWidget(self.signal_dropdown)
+        self.signal_combobox = QComboBox()
+        self.signal_combobox.setFixedWidth(300)
+        self.signal_combobox.currentIndexChanged.connect(self.signal_combobox_changed_cb)  
+        hlayout.addWidget(self.signal_combobox)
 
-        # self.celltype_dropdown.currentIndexChanged.connect(self.celltype_dropdown_changed_cb)  
+        # self.celltype_combobox.currentIndexChanged.connect(self.celltype_combobox_changed_cb)  
 
-        self.up_down_dropdown = QComboBox()
-        self.up_down_dropdown.setFixedWidth(110)
-        self.up_down_dropdown.addItem("increases")
-        self.up_down_dropdown.addItem("decreases")
-        hlayout.addWidget(self.up_down_dropdown)
+        self.up_down_combobox = QComboBox()
+        self.up_down_combobox.setFixedWidth(110)
+        self.up_down_combobox.addItem("increases")
+        self.up_down_combobox.addItem("decreases")
+        hlayout.addWidget(self.up_down_combobox)
 
         lwidth = 70
         label = QLabel("Half-max")
@@ -588,8 +588,8 @@ class Rules(QWidget):
             # glayout.addWidget(blank_line, idx_row,0, 1,1) # w, row, column, rowspan, colspan
 
     #-----------------------------------------------------------
-    def signal_dropdown_changed_cb(self, idx):
-        name = self.signal_dropdown.currentText()
+    def signal_combobox_changed_cb(self, idx):
+        name = self.signal_combobox.currentText()
         self.signal = name
 
         # print("(dropdown) cell_adhesion_affinity= ",self.param_d[self.current_cell_def]["cell_adhesion_affinity"])
@@ -671,9 +671,9 @@ class Rules(QWidget):
         Y = self.hill(X, half_max=half_max, hill_power=hill_power)
         self.rules_plot.ax0.plot(X,Y,'r-')
         self.rules_plot.ax0.grid()
-        title = "cell type: " + self.celltype_dropdown.currentText()
-        self.rules_plot.ax0.set_xlabel('signal: ' + self.signal_dropdown.currentText())
-        self.rules_plot.ax0.set_ylabel('response: ' + self.response_dropdown.currentText())
+        title = "cell type: " + self.celltype_combobox.currentText()
+        self.rules_plot.ax0.set_xlabel('signal: ' + self.signal_combobox.currentText())
+        self.rules_plot.ax0.set_ylabel('response: ' + self.response_combobox.currentText())
         self.rules_plot.ax0.set_title(title, fontsize=10)
         self.rules_plot.canvas.update()
         self.rules_plot.canvas.draw()
@@ -696,9 +696,9 @@ class Rules(QWidget):
     #-----------------------------------------------------------
     def add_rule_cb(self):
         # old: create csv string
-        rule_str = self.celltype_dropdown.currentText()
+        rule_str = self.celltype_combobox.currentText()
         rule_str += ','
-        rule_str += self.response_dropdown.currentText()
+        rule_str += self.response_combobox.currentText()
         rule_str += ','
         rule_str += self.rule_min_val.text()
         rule_str += ','
@@ -706,9 +706,9 @@ class Rules(QWidget):
         rule_str += ','
         rule_str += self.rule_max_val.text()
         rule_str += ','
-        rule_str += self.signal_dropdown.currentText()
+        rule_str += self.signal_combobox.currentText()
         rule_str += ','
-        rule_str += self.up_down_dropdown.currentText()
+        rule_str += self.up_down_combobox.currentText()
         rule_str += ','
         rule_str += self.rule_half_max.text()
         rule_str += ','
@@ -722,13 +722,13 @@ class Rules(QWidget):
 
         irow = self.num_rules
         print("add_rule_cb():self.num_rules= ",self.num_rules)
-        self.rules_table.cellWidget(irow, self.rules_celltype_idx).setText( self.celltype_dropdown.currentText() )
-        self.rules_table.cellWidget(irow, self.rules_response_idx).setText( self.response_dropdown.currentText() )
+        self.rules_table.cellWidget(irow, self.rules_celltype_idx).setText( self.celltype_combobox.currentText() )
+        self.rules_table.cellWidget(irow, self.rules_response_idx).setText( self.response_combobox.currentText() )
         self.rules_table.cellWidget(irow, self.rules_minval_idx).setText( self.rule_min_val.text() )
         self.rules_table.cellWidget(irow, self.rules_baseval_idx).setText( self.rule_base_val.text() )
         self.rules_table.cellWidget(irow, self.rules_maxval_idx).setText( self.rule_max_val.text() )
-        self.rules_table.cellWidget(irow, self.rules_signal_idx).setText( self.signal_dropdown.currentText() )
-        self.rules_table.cellWidget(irow, self.rules_direction_idx).setText( self.up_down_dropdown.currentText() )
+        self.rules_table.cellWidget(irow, self.rules_signal_idx).setText( self.signal_combobox.currentText() )
+        self.rules_table.cellWidget(irow, self.rules_direction_idx).setText( self.up_down_combobox.currentText() )
         self.rules_table.cellWidget(irow, self.rules_halfmax_idx).setText( self.rule_half_max.text() )
         self.rules_table.cellWidget(irow, self.rules_hillpower_idx).setText( self.rule_hill_power.text() )
         if self.dead_cells_checkbox.isChecked():
@@ -992,9 +992,9 @@ class Rules(QWidget):
                     rule_str += ','
                     rule_str += '0'  # rwh: hack for now
 
-                    # rule_str = self.celltype_dropdown.currentText()
+                    # rule_str = self.celltype_combobox.currentText()
                     # rule_str += ','
-                    # rule_str += self.response_dropdown.currentText()
+                    # rule_str += self.response_combobox.currentText()
                     # rule_str += ','
                     # rule_str += self.rule_min_val.text()
                     # rule_str += ','
@@ -1002,9 +1002,9 @@ class Rules(QWidget):
                     # rule_str += ','
                     # rule_str += self.rule_max_val.text()
                     # rule_str += ','
-                    # rule_str += self.signal_dropdown.currentText()
+                    # rule_str += self.signal_combobox.currentText()
                     # rule_str += ','
-                    # rule_str += self.up_down_dropdown.currentText()
+                    # rule_str += self.up_down_combobox.currentText()
                     # rule_str += ','
                     # rule_str += self.rule_half_max.text()
                     # rule_str += ','
@@ -1044,8 +1044,8 @@ class Rules(QWidget):
         for key in self.celldef_tab.param_d.keys():
             # logging.debug(f'cell type ---> {key}')
             print(f'cell type ---> {key}')
-            self.celltype_dropdown.addItem(key)
-            # self.signal_dropdown.addItem(key)
+            self.celltype_combobox.addItem(key)
+            # self.signal_combobox.addItem(key)
             # break
         # print("\n\n------------\nrules_tab.py: fill_gui(): self.celldef_tab.param_d = ",self.cell_def_tab.param_d)
 
@@ -1061,60 +1061,60 @@ class Rules(QWidget):
 
         #----- responses  (rwh TODO: add dict for default params for each entry)
         for s in substrates:
-            self.response_dropdown.addItem(s + " secretion")
+            self.response_combobox.addItem(s + " secretion")
         for s in substrates:
-            self.response_dropdown.addItem(s + " secretion target")
+            self.response_combobox.addItem(s + " secretion target")
         for s in substrates:
-            self.response_dropdown.addItem(s + " uptake")
+            self.response_combobox.addItem(s + " uptake")
         for s in substrates:
-            self.response_dropdown.addItem(s + " export")
-        self.response_dropdown.addItem("cycle entry")
+            self.response_combobox.addItem(s + " export")
+        self.response_combobox.addItem("cycle entry")
         for idx in range(6):
-            self.response_dropdown.addItem("exit from cycle phase " + str(idx))
-        self.response_dropdown.addItem("apoptosis")
-        self.response_dropdown.addItem("necrosis")
-        self.response_dropdown.addItem("migration speed")
-        self.response_dropdown.addItem("migration bias")
-        self.response_dropdown.addItem("migration persistence time")
+            self.response_combobox.addItem("exit from cycle phase " + str(idx))
+        self.response_combobox.addItem("apoptosis")
+        self.response_combobox.addItem("necrosis")
+        self.response_combobox.addItem("migration speed")
+        self.response_combobox.addItem("migration bias")
+        self.response_combobox.addItem("migration persistence time")
         for s in substrates:
-            self.response_dropdown.addItem("chemotactic response to " + s)
-        self.response_dropdown.addItem("cell-cell adhesion")
-        self.response_dropdown.addItem("cell-cell adhesion elastic constant")
+            self.response_combobox.addItem("chemotactic response to " + s)
+        self.response_combobox.addItem("cell-cell adhesion")
+        self.response_combobox.addItem("cell-cell adhesion elastic constant")
         for ct in self.celldef_tab.param_d.keys():
-            self.response_dropdown.addItem("adhesive affinity to " + ct)
-        self.response_dropdown.addItem("relative maximum adhesion distance")
-        self.response_dropdown.addItem("cell-cell repulsion")
-        self.response_dropdown.addItem("cell-BM adhesion")
-        self.response_dropdown.addItem("cell-BM repulsion")
-        self.response_dropdown.addItem("phagocytose dead cell")
+            self.response_combobox.addItem("adhesive affinity to " + ct)
+        self.response_combobox.addItem("relative maximum adhesion distance")
+        self.response_combobox.addItem("cell-cell repulsion")
+        self.response_combobox.addItem("cell-BM adhesion")
+        self.response_combobox.addItem("cell-BM repulsion")
+        self.response_combobox.addItem("phagocytose dead cell")
         for ct in self.celldef_tab.param_d.keys():
-            self.response_dropdown.addItem("phagocytose " + ct)
+            self.response_combobox.addItem("phagocytose " + ct)
         for adj in ["phagocytose ","attack ","fuse to ","transform to "]:
             for ct in self.celldef_tab.param_d.keys():
-                self.response_dropdown.addItem(adj + ct)
+                self.response_combobox.addItem(adj + ct)
             
             
 
         #----- signals
         for s in substrates:
-            self.signal_dropdown.addItem(s)
+            self.signal_combobox.addItem(s)
         for s in substrates:
-            self.signal_dropdown.addItem("intracellular " + s)
+            self.signal_combobox.addItem("intracellular " + s)
         for s in substrates:
-            self.signal_dropdown.addItem(s + " gradient")
-        self.signal_dropdown.addItem("pressure")
-        self.signal_dropdown.addItem("volume")
+            self.signal_combobox.addItem(s + " gradient")
+        self.signal_combobox.addItem("pressure")
+        self.signal_combobox.addItem("volume")
 
         for ct in self.celldef_tab.param_d.keys():
-            self.signal_dropdown.addItem("contact with " + ct)
+            self.signal_combobox.addItem("contact with " + ct)
 
-        self.signal_dropdown.addItem("contact with live cell")
-        self.signal_dropdown.addItem("contact with dead cell")
-        self.signal_dropdown.addItem("contact with BM")
-        self.signal_dropdown.addItem("damage")
-        self.signal_dropdown.addItem("dead")
-        self.signal_dropdown.addItem("total attack time")
-        self.signal_dropdown.addItem("time")
+        self.signal_combobox.addItem("contact with live cell")
+        self.signal_combobox.addItem("contact with dead cell")
+        self.signal_combobox.addItem("contact with BM")
+        self.signal_combobox.addItem("damage")
+        self.signal_combobox.addItem("dead")
+        self.signal_combobox.addItem("total attack time")
+        self.signal_combobox.addItem("time")
 
 
 

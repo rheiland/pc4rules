@@ -82,6 +82,9 @@ class Vis(QWidget):
         # self.plot_svg_flag = False
         self.field_index = 4  # substrate (0th -> 4 in the .mat)
         self.plot_xmin = None
+        self.plot_xmax = None
+        self.plot_ymin = None
+        self.plot_ymax = None
 
         self.use_defaults = True
         self.title_str = ""
@@ -269,6 +272,7 @@ class Vis(QWidget):
         hbox.addStretch(1)  # not sure about this, but keeps buttons shoved to left
         # hbox.addLayout(hbox2) 
 
+        self.disable_cell_scalar_cb = False
         self.cell_scalar_combobox = QComboBox()
         # self.cell_scalar_combobox.setFixedWidth(300)
         # self.cell_scalar_combobox.currentIndexChanged.connect(self.cell_scalar_changed_cb)
@@ -285,10 +289,8 @@ class Vis(QWidget):
         self.vbox.addLayout(hbox)
         #------------------
         hbox = QHBoxLayout()
-        self.cell_scalar_combobox.addItem("pressure")
-        self.cell_scalar_combobox.addItem("total_volume")
-        self.cell_scalar_combobox.addItem("current_phase")
-        self.cell_scalar_combobox.addItem("cell_type")
+        self.add_default_cell_vars()
+        self.disable_cell_scalar_cb = False
         self.cell_scalar_combobox.setEnabled(False)
         hbox.addWidget(self.cell_scalar_combobox)
 
@@ -299,6 +301,13 @@ class Vis(QWidget):
         self.cell_scalar_cbar_combobox.setEnabled(False)
         hbox.addWidget(self.cell_scalar_cbar_combobox)
         self.vbox.addLayout(hbox)
+
+        self.custom_button = QPushButton("append custom data")
+        self.custom_button.setFixedWidth(150)
+        self.custom_button.setStyleSheet("background-color : lightgreen")
+        # self.play_button.clicked.connect(self.play_plot_cb)
+        self.custom_button.clicked.connect(self.append_custom_cb)
+        self.vbox.addWidget(self.custom_button)
 
         #------------------
         self.vbox.addWidget(QHLine())
@@ -375,8 +384,23 @@ class Vis(QWidget):
         self.vbox.addLayout(hbox)
         # self.vbox.addWidget(groupbox)
 
+        label = QLabel("(press 'Enter' if cmin or cmax changes)")
+        self.vbox.addWidget(label)
+
         #------------------
         self.vbox.addWidget(QHLine())
+
+        hbox = QHBoxLayout()
+        label = QLabel("folder")
+        label.setAlignment(QtCore.Qt.AlignRight)
+        hbox.addWidget(label)
+
+        # self.output_folder = QLineEdit(self.output_dir)
+        self.output_folder = QLineEdit()
+        self.output_folder.returnPressed.connect(self.output_folder_cb)
+        hbox.addWidget(self.output_folder)
+        hbox.addStretch(1)  # not sure about this, but keeps buttons shoved to left
+        self.vbox.addLayout(hbox)
 
         #-----------
         self.frame_count.textChanged.connect(self.change_frame_count_cb)
@@ -507,6 +531,11 @@ class Vis(QWidget):
         # self.layout.addStretch()
 
         # self.create_figure()
+
+    def output_folder_cb(self):
+        # print(f"output_folder_cb(): old={self.output_dir}")
+        self.output_dir = self.output_folder.text()
+        # print(f"                    new={self.output_dir}")
 
     def cells_svg_mat_cb(self):
         radioBtn = self.sender()
@@ -970,6 +999,45 @@ class Vis(QWidget):
         self.update_plots()
 
 
+    def add_default_cell_vars(self):
+        self.disable_cell_scalar_cb = True
+        self.cell_scalar_combobox.clear()
+        default_var_l = ["pressure", "total_volume", "current_phase", "cell_type", "damage"]
+        for idx in range(len(default_var_l)):
+            self.cell_scalar_combobox.addItem(default_var_l[idx])
+        self.cell_scalar_combobox.insertSeparator(len(default_var_l))
+
+    def append_custom_cb(self):
+        self.add_default_cell_vars()
+
+        # Add all custom vars. Hack.
+        xml_file_root = "output%08d.xml" % 0
+        xml_file = os.path.join(self.output_dir, xml_file_root)
+        if not Path(xml_file).is_file():
+            print("append_custom_cb(): ERROR: file not found",xml_file)
+            return
+
+        mcds = pyMCDS(xml_file_root, self.output_dir, microenv=False, graph=False, verbose=False)
+
+        # # cell_scalar = mcds.get_cell_df()[cell_scalar_name]
+        num_keys = len(mcds.data['discrete_cells']['data'].keys())
+        # print("plot_tab: append_custom_cb(): num_keys=",num_keys)
+        keys_l = list(mcds.data['discrete_cells']['data'])
+        # print("plot_tab: append_custom_cb(): keys_l=",keys_l)
+        for idx in range(num_keys-1,0,-1):
+            if "transformation_rates" in keys_l[idx]:
+                # print("found transformation_rates at index=",idx)
+                break
+        idx1 = idx + 1
+
+        for idx in range(idx1, len(keys_l)):
+            # print("------ add: ",keys_l[idx])
+            self.cell_scalar_combobox.addItem(keys_l[idx])
+
+        self.disable_cell_scalar_cb = False
+
+        self.update_plots()
+
     def animate(self):
         if not self.animating_flag:
             self.animating_flag = True
@@ -1247,7 +1315,7 @@ class Vis(QWidget):
         # self.current_frame = frame
         fname = "snapshot%08d.svg" % frame
         full_fname = os.path.join(self.output_dir, fname)
-        print("-- plot_svg(): full_fname= ",full_fname)
+        # print("-- plot_svg(): full_fname= ",full_fname)
         # try:
         #     print("   ==>>>>> plot_svg(): full_fname=",full_fname)
         # except:
@@ -1503,12 +1571,16 @@ class Vis(QWidget):
     
     #-----------------------------------------------------
     def plot_cell_scalar(self, frame):
+
+        if self.disable_cell_scalar_cb:
+            return
+
         xml_file_root = "output%08d.xml" % frame
         xml_file = os.path.join(self.output_dir, xml_file_root)
         # xml_file = os.path.join("tmpdir", xml_file_root)  # temporary hack
         cell_scalar_name = self.cell_scalar_combobox.currentText()
         cbar_name = self.cell_scalar_cbar_combobox.currentText()
-        print(f"\n\n   >>>>--------- plot_cell_scalar(): xml_file={xml_file}, scalar={cell_scalar_name}, cbar={cbar_name}")
+        # print(f"\n\n   >>>>--------- plot_cell_scalar(): xml_file={xml_file}, scalar={cell_scalar_name}, cbar={cbar_name}")
         if not Path(xml_file).is_file():
             print("ERROR: file not found",xml_file)
             return
@@ -1519,19 +1591,24 @@ class Vis(QWidget):
 
         # mcds = pyMCDS(fname, '../tmpdir', microenv=False, graph=False, verbose=True)
         # temporary hack to debug plotting without doing Run first
-        mcds = pyMCDS(xml_file_root, self.output_dir, microenv=False, graph=False, verbose=True)
+        # mcds = pyMCDS(xml_file_root, self.output_dir, microenv=False, graph=False, verbose=True)
+        mcds = pyMCDS(xml_file_root, self.output_dir, microenv=False, graph=False, verbose=False)
         # mcds = pyMCDS(xml_file_root, "tmpdir", microenv=False, graph=False, verbose=True)
         total_min = mcds.get_time()
-        print("    time=",total_min)
-        cell_scalar = mcds.get_cell_df()[cell_scalar_name]
+        # print("    time=",total_min)
+        try:
+            cell_scalar = mcds.get_cell_df()[cell_scalar_name]
+        except:
+            print("vis_tab.py: plot_cell_scalar(): error performing mcds.get_cell_df()[cell_scalar_name]")
+            return
         num_cells = len(cell_scalar)
-        print("  len(cell_scalar) = ",len(cell_scalar))
+        # print("  len(cell_scalar) = ",len(cell_scalar))
         vmin = cell_scalar.min()
         vmax = cell_scalar.max()
         # fix_cmap = 0
-        print(f'   cell_scalar.min(), max() = {vmin}, {vmax}')
+        # print(f'   cell_scalar.min(), max() = {vmin}, {vmax}')
         cell_vol = mcds.get_cell_df()['total_volume']
-        print(f'   cell_vol.min(), max() = {cell_vol.min()}, {cell_vol.max()}')
+        # print(f'   cell_vol.min(), max() = {cell_vol.min()}, {cell_vol.max()}')
 
         four_thirds_pi =  4.188790204786391
         cell_radii = np.divide(cell_vol, four_thirds_pi)
@@ -1555,9 +1632,9 @@ class Vis(QWidget):
         else:
             cell_plot = self.circles(xvals,yvals, s=cell_radii, c=cell_scalar, cmap=cbar_name)
 
-        print("------- plot_cell_scalar() -------------")
+        # print("------- plot_cell_scalar() -------------")
         num_axes =  len(self.figure.axes)
-        print("# axes = ",num_axes)
+        # print("# axes = ",num_axes)
         # if num_axes > 1: 
         # if self.axis_id_cellscalar:
         if self.cax2:
@@ -1565,14 +1642,14 @@ class Vis(QWidget):
                 self.cax2.remove()
             except:
                 pass
-            print("# axes(after cell_scalar remove) = ",len(self.figure.axes))
-            print(" self.figure.axes= ",self.figure.axes)
+            # print("# axes(after cell_scalar remove) = ",len(self.figure.axes))
+            # print(" self.figure.axes= ",self.figure.axes)
             #ppp
             ax2_divider = make_axes_locatable(self.ax0)
             self.cax2 = ax2_divider.append_axes("bottom", size="4%", pad="8%")
             self.cbar2 = self.figure.colorbar(cell_plot, cax=self.cax2, orientation="horizontal")
-            print("\n# axes(redraw cell_scalar) = ",len(self.figure.axes))
-            print(" self.figure.axes= ",self.figure.axes)
+            # print("\n# axes(redraw cell_scalar) = ",len(self.figure.axes))
+            # print(" self.figure.axes= ",self.figure.axes)
             # self.axis_id_cellscalar = len(self.figure.axes) - 1
             self.cbar2.ax.tick_params(labelsize=self.fontsize)
             self.cbar2.ax.set_xlabel(cell_scalar_name)
@@ -1581,7 +1658,7 @@ class Vis(QWidget):
             self.cax2 = ax2_divider.append_axes("bottom", size="4%", pad="8%")
             self.cbar2 = self.figure.colorbar(cell_plot, cax=self.cax2, orientation="horizontal")
             self.cbar2.ax.tick_params(labelsize=self.fontsize)
-            print(" self.figure.axes= ",self.figure.axes)
+            # print(" self.figure.axes= ",self.figure.axes)
             self.cbar2.ax.set_xlabel(cell_scalar_name)
 
         self.ax0.set_title(self.title_str, fontsize=self.title_fontsize)
@@ -1609,11 +1686,11 @@ class Vis(QWidget):
         hrs = int(mins/60)
         days = int(hrs/24)
         self.title_str = '%d days, %d hrs, %d mins' % (days,hrs-days*24, mins-hrs*60)
-        print(self.title_str)
+        # print(self.title_str)
 
         fname = "output%08d_microenvironment0.mat" % frame
         full_fname = os.path.join(self.output_dir, fname)
-        print("\n    ==>>>>> plot_substrate(): full_fname=",full_fname)
+        # print("\n    ==>>>>> plot_substrate(): full_fname=",full_fname)
         if not Path(full_fname).is_file():
             print("ERROR: file not found",full_fname)
             return
@@ -1635,18 +1712,19 @@ class Vis(QWidget):
         # self.numx = 88  # for kidney model
         # self.numy = 75
 
-        try:
-            print("self.numx, self.numy = ",self.numx, self.numy )
-        except:
-            print("Error: self.numx, self.numy not defined.")
-            return
+        # try:
+        #     print("plot_substrate(): self.numx, self.numy = ",self.numx, self.numy )
+        # except:
+        #     print("Error: self.numx, self.numy not defined.")
+        #     return
         # nxny = numx * numy
 
         try:
             xgrid = M[0, :].reshape(self.numy, self.numx)
             ygrid = M[1, :].reshape(self.numy, self.numx)
         except:
-            print("error: cannot reshape ",self.numy, self.numx," for array ",M.shape)
+            # print("error: cannot reshape ",self.numy, self.numx," for array ",M.shape)
+            print("vis_tab.py: unable to reshape substrate array; return")
             return
 
         zvals = M[self.field_index,:].reshape(self.numy,self.numx)
@@ -1698,26 +1776,26 @@ class Vis(QWidget):
 
         # Do this funky stuff to prevent the colorbar from shrinking in height with each redraw.
         # Except it doesn't seem to work when we use fixed ranges on the colorbar?!
-        print("------- plot_substrate() -------------")
+        # print("------- plot_substrate() -------------")
         num_axes =  len(self.figure.axes)
-        print("# axes = ",num_axes)
+        # print("# axes = ",num_axes)
         if self.cax1:
             self.cax1.remove()  # replace/update the colorbar
-            print("# axes(after substrate remove) = ",len(self.figure.axes))
-            print(" self.figure.axes= ",self.figure.axes)
+            # print("# axes(after substrate remove) = ",len(self.figure.axes))
+            # print(" self.figure.axes= ",self.figure.axes)
             #ppp
             ax1_divider = make_axes_locatable(self.ax0)
             self.cax1 = ax1_divider.append_axes("right", size="4%", pad="2%")
             self.cbar1 = self.figure.colorbar(substrate_plot, cax=self.cax1)
-            print("\n# axes(redraw substrate) = ",len(self.figure.axes))
-            print(" self.figure.axes= ",self.figure.axes)
+            # print("\n# axes(redraw substrate) = ",len(self.figure.axes))
+            # print(" self.figure.axes= ",self.figure.axes)
             self.cbar1.ax.tick_params(labelsize=self.fontsize)
         else:
             ax1_divider = make_axes_locatable(self.ax0)
             self.cax1 = ax1_divider.append_axes("right", size="4%", pad="2%")
             self.cbar1 = self.figure.colorbar(substrate_plot, cax=self.cax1)
             self.cbar1.ax.tick_params(labelsize=self.fontsize)
-            print("(init substrate) self.figure.axes= ",self.figure.axes)
+            # print("(init substrate) self.figure.axes= ",self.figure.axes)
 
         self.ax0.set_title(self.title_str, fontsize=self.title_fontsize)
         self.ax0.set_xlim(self.plot_xmin, self.plot_xmax)

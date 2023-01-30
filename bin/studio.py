@@ -24,6 +24,7 @@ from xml.dom import minidom
 from PyQt5 import QtGui   # , QtCore, QtGui
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import QProcess
+from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QPalette, QColor, QIcon, QFont
 
 from about_tab import About
@@ -308,6 +309,7 @@ class PhysiCellXMLCreator(QWidget):
         if show_vis_flag:
             print("studio.py: creating vis_tab (Plot tab) and legend_tab")
             self.vis_tab = Vis(self.nanohub_flag)
+            self.vis_tab.output_folder.setText(self.output_dir)
             # self.vis_tab.output_dir = self.output_dir
             # self.vis_tab.reset_plot_range()
 
@@ -350,6 +352,55 @@ class PhysiCellXMLCreator(QWidget):
         # self.reset_xml_root()
 
     #-----------------------------------------
+    def about_pyqt(self):
+        msgBox = QMessageBox()
+        msgBox.setTextFormat(Qt.RichText)
+        about_text = """ 
+PhysiCell Studio is developed using PyQt5.<br><br>
+
+For licensing information:<br>
+<a href="https://github.com/PyQt5/PyQt/blob/master/LICENSE">github.com/PyQt5/PyQt/blob/master/LICENSE</a>
+
+        """
+        msgBox.setText(about_text)
+        msgBox.setStandardButtons(QMessageBox.Ok)
+        returnValue = msgBox.exec()
+
+    def about_studio(self):
+        msgBox = QMessageBox()
+        # font = QFont()
+        # font.setBold(True)
+        # msgBox.setFont(font)
+        msgBox.setTextFormat(Qt.RichText)
+        # msgBox.setIcon(QMessageBox.Information)
+        version_file =  os.path.realpath(os.path.join(os.path.dirname(__file__), '..', 'VERSION.txt'))
+        try:
+            with open(version_file) as f:
+                v = f.readline()
+        except:
+            v = "(can't find VERSION.txt)\n"
+            print("Unable to open ",version_file)
+        about_text = "Version " + v + """ <br><br>
+PhysiCell Studio is a tool to provide graphical editing of a PhysiCell model and, optionally, run a model and visualize results. &nbsp; It is lead by the Macklin Lab (Indiana University) with contributions from the PhysiCell community.<br><br>
+
+NOTE: When loading a model (.xml configuration file), it must be a "flat" format for the  cell_definitions, i.e., all parameters need to be defined. &nbsp; Many legacy PhysiCell models used a hierarchical format in which a cell_definition could inherit from a parent. &nbsp; The hierarchical format is not supported in the Studio.<br><br>
+
+For more information:<br>
+<a href="https://github.com/PhysiCell-Tools/PhysiCell-model-builder">github.com/PhysiCell-Tools/PhysiCell-model-builder</a><br>
+<a href="https://github.com/MathCancer/PhysiCell">https://github.com/MathCancer/PhysiCell</a><br>
+<br>
+PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no event shall the Authors be liable for any damages whatsoever.<br>
+        """
+        msgBox.setText(about_text)
+        # msgBox.setInformativeText(about_text)
+        # msgBox.setDetailedText(about_text)
+        # msgBox.setText("PhysiCell Studio is a tool to provide easy editing of a PhysiCell model and, optionally, run a model and visualize results.")
+        msgBox.setStandardButtons(QMessageBox.Ok)
+        # msgBox.buttonClicked.connect(msgButtonClick)
+
+        returnValue = msgBox.exec()
+
+    #-----------------------------------------
     def enablePlotTab(self, bval):
         # self.tabWidget.setTabEnabled(5, bval)
         self.tabWidget.setTabEnabled(6, bval)   # tab index = 6 if About tab is defined
@@ -360,6 +411,14 @@ class PhysiCellXMLCreator(QWidget):
     def menu(self):
         menubar = QMenuBar(self)
         menubar.setNativeMenuBar(False)
+
+        #--------------
+        studio_menu = menubar.addMenu('&Studio')
+        studio_menu.addAction("About", self.about_studio)
+        studio_menu.addAction("About PyQt", self.about_pyqt)
+        # studio_menu.addAction("Preferences", self.prefs_cb)
+        studio_menu.addSeparator()
+        studio_menu.addAction("Quit", quit_cb)
 
         #--------------
         file_menu = menubar.addMenu('&File')
@@ -559,6 +618,10 @@ class PhysiCellXMLCreator(QWidget):
 
         self.vis_tab.init_plot_range(self.config_tab)
         self.vis_tab.reset_model()
+        # self.output_dir = self.config_tab.folder.text()
+        self.vis_tab.output_dir = self.config_tab.folder.text()
+        self.vis_tab.output_folder.setText(self.vis_tab.output_dir)
+        print("\nstudio.py: reset_xml_root(): vis_tab.output_folder.setText=",self.vis_tab.output_dir)
         # self.vis_tab.setEnabled(False)
         self.enablePlotTab(True)
 
@@ -702,8 +765,12 @@ class PhysiCellXMLCreator(QWidget):
             self.run_tab.config_file = config_file
             self.run_tab.config_xml_name.setText(config_file)
 
+def quit_cb():
+    global studio_app
+    studio_app.quit()
 
 def main():
+    global studio_app
     inputfile = ''
     # show_vis_tab = True
     vis_flag = True
