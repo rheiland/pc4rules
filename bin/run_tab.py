@@ -103,7 +103,7 @@ class RunModel(QWidget):
         if self.nanohub_flag:
             self.config_xml_name.setText('config.xml')
         else:
-            self.config_xml_name.setText('data/tumor.xml')
+            self.config_xml_name.setText('data/tumor.xml')  # default model
         hbox.addWidget(self.config_xml_name)
 
         # self.vbox.addStretch()
@@ -168,9 +168,16 @@ class RunModel(QWidget):
             msg.setWindowTitle("Warning")
             msg.exec_()
 
+        # stop the insanity
+        self.output_dir = self.config_tab.folder.text()
+        self.legend_tab.output_dir = self.output_dir 
+        self.vis_tab.output_dir = self.output_dir 
+        print("run_model_cb(): update self.output_dir (in legend_tab and vis_tab too)= ",self.output_dir)
+
         self.run_button.setEnabled(False)
 
-        if True: # copy normal workflow of an app, strange as it is
+        # if True: # copy normal workflow of an app, strange as it is
+        if self.nanohub_flag:
             # make sure we are where we started (app's root dir)
             os.chdir(self.homedir)
             print("run_tab.py:  chdir to homedir= ",self.homedir)
@@ -189,7 +196,7 @@ class RunModel(QWidget):
             # new_config_file = "tmpdir/config.xml"  # use Path; work on Windows?
             tdir = os.path.abspath('tmpdir')
             new_config_file = Path(tdir,"config.xml")
-            print("run_tab.py:  new_config_file = ",new_config_file )
+            print("run_tab.py:  (for nanoHUB *only*) new_config_file = ",new_config_file )  # insanity!
 
             # write_config_file(new_config_file)  
             # update the .xml config file
@@ -200,12 +207,8 @@ class RunModel(QWidget):
             # self.celldef_tab.fill_xml()
             # self.user_params_tab.fill_xml()
             print("\n\n ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-            if self.nanohub_flag:
-                print("run_tab.py: ----> writing modified model to ",new_config_file)
-                self.tree.write(new_config_file)  # saves modified XML to tmpdir/config.xml 
-            else:
-                print("run_tab.py: ----> writing modified model to ",self.config_file)
-                self.tree.write(self.config_file)
+            print("run_tab.py: ----> writing modified model to ",new_config_file)
+            self.tree.write(new_config_file)  # saves modified XML to tmpdir/config.xml 
 
             # Operate from tmpdir. XML: <folder>,</folder>; temporary output goes here.  May be copied to cache later.
             # tdir = os.path.abspath('tmpdir')
@@ -218,6 +221,43 @@ class RunModel(QWidget):
             # os.chdir(tdir)   # run exec from output dir (e.g., /tmpdir on nanoHUB)
             # print("run_tab.py:  chdir to tdir= ",tdir)
 
+        #------------------
+        else:  # not nanoHUB
+            # make sure we are where we started (app's root dir)
+            os.chdir(self.homedir)
+            print("run_model_cb():  chdir to homedir= ",self.homedir)
+
+            # remove any previous data
+            # NOTE: this dir name needs to match the <folder>  in /data/<config_file.xml>
+            rm_cmd = "rm -rf " + self.output_dir + "*"
+            print("run_model_cb():  rm_cmd=",rm_cmd)
+            os.system(rm_cmd)
+            time.sleep(1)
+            if os.path.isdir(self.output_dir):
+                # something on NFS causing issues...
+                tname = tempfile.mkdtemp(suffix='.bak', prefix='tmpdir_', dir='.')
+                shutil.move(self.output_dir, tname)
+            os.makedirs(self.output_dir)
+
+            # write the default config file to tmpdir
+            # new_config_file = "tmpdir/config.xml"  # use Path; work on Windows?
+            tdir = os.path.abspath(self.output_dir)
+            new_config_file = Path(tdir,"config.xml")
+            print("run_model_cb():  (local) new_config_file = ",new_config_file )  # insanity!
+
+            # write_config_file(new_config_file)  
+            # update the .xml config file
+            self.update_xml_from_gui()
+
+            # self.config_tab.fill_xml()
+            # self.microenv_tab.fill_xml()
+            # self.celldef_tab.fill_xml()
+            # self.user_params_tab.fill_xml()
+            print("\n\n ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+            print("run_tab.py: ----> writing modified model to ",self.config_file)
+            self.tree.write(self.config_file)
+
+        #-----------------------------------------
         auto_load_params = True
         # if auto_load_params:
 

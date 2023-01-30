@@ -27,6 +27,6 @@ python bin/studio.py
 ```
 
 In the Studio:
-* in the Run tab, click `Run Simulation`. Note: both locally and on nanoHUB, the simulation is run *from* the `tmpdir` directory and that's where all output files will be written. The `tmpdir` is also where the [edited] config file is copied and renamed `config.xml`. Therefore the original config file needs to specify the save output folder is "."
+* in the Run tab, click `Run Simulation`. Note: in previous releases, we tried to follow the nanoHUB workflow whereby output was forced to be written to `tmpdir` (and that's where the executable was run from). Now we follow a workflow that focuses on running from your own computer and therefore allow for any output `folder `.
 * in the Plot tab, click `Play`.
 * edit params if you want then repeat: Run, Play.
