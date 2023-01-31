@@ -15,7 +15,7 @@ from pathlib import Path
 from PyQt5 import QtCore, QtGui
 from PyQt5.QtWidgets import QFrame,QApplication,QWidget,QTabWidget,QLineEdit, QGroupBox,QHBoxLayout,QVBoxLayout,QRadioButton,QLabel,QCheckBox,QComboBox,QScrollArea,QGridLayout,QPushButton,QFileDialog,QTableWidget,QTableWidgetItem,QHeaderView
 from PyQt5.QtWidgets import QMessageBox
-from PyQt5.QtWidgets import QCompleter
+from PyQt5.QtWidgets import QCompleter, QSizePolicy
 from PyQt5.QtCore import QSortFilterProxyModel
 from PyQt5.QtGui import QStandardItem, QStandardItemModel
 # from PyQt5.QtGui import QTextEdit
@@ -233,30 +233,36 @@ class Rules(QWidget):
         hlayout = QHBoxLayout()
         # hlayout.addStretch(0)
 
-        label = QLabel("Response")
-        # label.setAlignment(QtCore.Qt.AlignCenter)
-        label.setAlignment(QtCore.Qt.AlignLeft)
+        label = QLabel("Signal")
+        label.setFixedWidth(50)
+        label.setAlignment(QtCore.Qt.AlignCenter)
+        # label.setAlignment(QtCore.Qt.AlignLeft)
+        # label.setAlignment(QtCore.Qt.AlignRight)
         hlayout.addWidget(label) 
 
+        # self.signal_combobox = QComboBox()
+        self.signal_model = QStandardItemModel()
+        self.signal_combobox = ExtendedCombo()
+        self.signal_combobox.setModel(self.signal_model)
+        self.signal_combobox.setModelColumn(0)
 
-        # self.response_combobox = QComboBox()
-        self.response_model = QStandardItemModel()
-        self.response_combobox = ExtendedCombo()
-        self.response_combobox.setModel(self.response_model)
-        self.response_combobox.setModelColumn(0)
-
-        self.response_combobox.setFixedWidth(300)
-        hlayout.addWidget(self.response_combobox) 
-        # self.response_combobox.currentIndexChanged.connect(self.signal_combobox_changed_cb)  
+        # self.signal_combobox.setFixedWidth(300)
+        self.signal_combobox.currentIndexChanged.connect(self.signal_combobox_changed_cb)  
+        hlayout.addWidget(self.signal_combobox)
 
         self.rules_tab_layout.addLayout(hlayout) 
 
         #------------
-        lwidth = 50
+        lwidth = 30
         label = QLabel("Min")
         label.setFixedWidth(lwidth)
-        label.setAlignment(QtCore.Qt.AlignRight)
+        # label.setAlignment(QtCore.Qt.AlignRight)
+        label.setAlignment(QtCore.Qt.AlignCenter)
+        # label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)  # horiz,vert
+        label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        # label.setStyleSheet("QLabel {background-color: red;}")
         hlayout.addWidget(label) 
+
         self.rule_min_val = QLineEdit()
         self.rule_min_val.setText('0.')
         self.rule_min_val.setValidator(QtGui.QDoubleValidator())
@@ -265,7 +271,8 @@ class Rules(QWidget):
         #------------
         label = QLabel("Base")
         label.setFixedWidth(lwidth)
-        label.setAlignment(QtCore.Qt.AlignRight)
+        # label.setAlignment(QtCore.Qt.AlignRight)
+        label.setAlignment(QtCore.Qt.AlignCenter)
         hlayout.addWidget(label) 
         self.rule_base_val = QLineEdit()
         self.rule_base_val.setText('1.e-5')
@@ -275,46 +282,51 @@ class Rules(QWidget):
         #------------
         label = QLabel("Max")
         label.setFixedWidth(lwidth)
-        label.setAlignment(QtCore.Qt.AlignRight)
+        # label.setAlignment(QtCore.Qt.AlignRight)
+        label.setAlignment(QtCore.Qt.AlignCenter)
         hlayout.addWidget(label) 
         self.rule_max_val = QLineEdit()
         self.rule_max_val.setText('3.e-4')
         self.rule_max_val.setValidator(QtGui.QDoubleValidator())
         hlayout.addWidget(self.rule_max_val)
 
+        hlayout.addStretch(1)
         self.rules_tab_layout.addLayout(hlayout) 
+
         #------------
         hlayout = QHBoxLayout()
 
-        label = QLabel("Signal")
-        label.setFixedWidth(50)
-        # label.setAlignment(QtCore.Qt.AlignCenter)
+        hbox = QHBoxLayout()
+        label = QLabel("Response")
         # label.setAlignment(QtCore.Qt.AlignLeft)
-        label.setAlignment(QtCore.Qt.AlignRight)
-        hlayout.addWidget(label) 
+        label.setAlignment(QtCore.Qt.AlignCenter)
+        hbox.addWidget(label) 
 
-        # self.signal_combobox = QComboBox()
-        self.signal_model = QStandardItemModel()
-        self.signal_combobox = ExtendedCombo()
-        self.signal_combobox.setModel(self.signal_model)
-        self.signal_combobox.setModelColumn(0)
+        # self.response_combobox = QComboBox()
+        self.response_model = QStandardItemModel()
+        self.response_combobox = ExtendedCombo()
+        self.response_combobox.setModel(self.response_model)
+        self.response_combobox.setModelColumn(0)
 
-        self.signal_combobox.setFixedWidth(300)
-        self.signal_combobox.currentIndexChanged.connect(self.signal_combobox_changed_cb)  
-        hlayout.addWidget(self.signal_combobox)
+        # self.response_combobox.setFixedWidth(300)
+        hbox.addWidget(self.response_combobox) 
+        # self.response_combobox.currentIndexChanged.connect(self.signal_combobox_changed_cb)  
+
+        hlayout.addLayout(hbox)
 
         # self.celltype_combobox.currentIndexChanged.connect(self.celltype_combobox_changed_cb)  
-
+        #--------------
         self.up_down_combobox = QComboBox()
         self.up_down_combobox.setFixedWidth(110)
         self.up_down_combobox.addItem("increases")
         self.up_down_combobox.addItem("decreases")
         hlayout.addWidget(self.up_down_combobox)
 
-        lwidth = 70
+        lwidth = 60
         label = QLabel("Half-max")
         label.setFixedWidth(lwidth)
-        label.setAlignment(QtCore.Qt.AlignRight)
+        # label.setAlignment(QtCore.Qt.AlignRight)
+        label.setAlignment(QtCore.Qt.AlignCenter)
         hlayout.addWidget(label) 
         self.rule_half_max = QLineEdit()
         self.rule_half_max.setText('21.')
@@ -324,7 +336,8 @@ class Rules(QWidget):
 
         label = QLabel("Hill power")
         label.setFixedWidth(lwidth)
-        label.setAlignment(QtCore.Qt.AlignRight)
+        # label.setAlignment(QtCore.Qt.AlignRight)
+        label.setAlignment(QtCore.Qt.AlignCenter)
         hlayout.addWidget(label) 
         self.rule_hill_power = QLineEdit()
         self.rule_hill_power.setText('4')
