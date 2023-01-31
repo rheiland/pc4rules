@@ -15,9 +15,13 @@ from pathlib import Path
 from PyQt5 import QtCore, QtGui
 from PyQt5.QtWidgets import QFrame,QApplication,QWidget,QTabWidget,QLineEdit, QGroupBox,QHBoxLayout,QVBoxLayout,QRadioButton,QLabel,QCheckBox,QComboBox,QScrollArea,QGridLayout,QPushButton,QFileDialog,QTableWidget,QTableWidgetItem,QHeaderView
 from PyQt5.QtWidgets import QMessageBox
+from PyQt5.QtWidgets import QCompleter, QSizePolicy
+from PyQt5.QtCore import QSortFilterProxyModel
+from PyQt5.QtGui import QStandardItem, QStandardItemModel
 # from PyQt5.QtGui import QTextEdit
-
 from PyQt5 import QtWidgets
+from PyQt5.QtCore import Qt
+
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
@@ -39,6 +43,49 @@ class RulesPlotWindow(QWidget):
 
         self.setLayout(self.layout)
 #---------------------
+
+class ExtendedCombo( QComboBox ):
+    def __init__( self,  parent = None):
+        super( ExtendedCombo, self ).__init__( parent )
+
+        self.setFocusPolicy( Qt.StrongFocus )
+        self.setEditable( True )
+        self.completer = QCompleter( self )
+
+        # always show all completions
+        self.completer.setCompletionMode( QCompleter.UnfilteredPopupCompletion )
+        self.pFilterModel = QSortFilterProxyModel( self )
+        self.pFilterModel.setFilterCaseSensitivity( Qt.CaseInsensitive )
+
+        self.completer.setPopup( self.view() )
+
+        self.setCompleter( self.completer )
+
+        # self.lineEdit().textEdited[unicode].connect( self.pFilterModel.setFilterFixedString )
+        self.lineEdit().textEdited[str].connect( self.pFilterModel.setFilterFixedString )
+        self.completer.activated.connect(self.setTextIfCompleterIsClicked)
+
+    def setModel( self, model ):
+        super(ExtendedCombo, self).setModel( model )
+        self.pFilterModel.setSourceModel( model )
+        self.completer.setModel(self.pFilterModel)
+
+    def setModelColumn( self, column ):
+        self.completer.setCompletionColumn( column )
+        self.pFilterModel.setFilterKeyColumn( column )
+        super(ExtendedCombo, self).setModelColumn( column )
+
+    def view( self ):
+        return self.completer.popup()
+
+    def index( self ):
+        return self.currentIndex()
+
+    def setTextIfCompleterIsClicked(self, text):
+      if text:
+        index = self.findText(text)
+        self.setCurrentIndex(index)
+
 
 class QHLine(QFrame):
     def __init__(self):
@@ -186,25 +233,36 @@ class Rules(QWidget):
         hlayout = QHBoxLayout()
         # hlayout.addStretch(0)
 
-        label = QLabel("Response")
-        # label.setAlignment(QtCore.Qt.AlignCenter)
-        label.setAlignment(QtCore.Qt.AlignLeft)
+        label = QLabel("Signal")
+        label.setFixedWidth(50)
+        label.setAlignment(QtCore.Qt.AlignCenter)
+        # label.setAlignment(QtCore.Qt.AlignLeft)
+        # label.setAlignment(QtCore.Qt.AlignRight)
         hlayout.addWidget(label) 
 
+        # self.signal_combobox = QComboBox()
+        self.signal_model = QStandardItemModel()
+        self.signal_combobox = ExtendedCombo()
+        self.signal_combobox.setModel(self.signal_model)
+        self.signal_combobox.setModelColumn(0)
 
-        self.response_combobox = QComboBox()
-        self.response_combobox.setFixedWidth(300)
-        hlayout.addWidget(self.response_combobox) 
-        # self.response_combobox.currentIndexChanged.connect(self.signal_combobox_changed_cb)  
+        # self.signal_combobox.setFixedWidth(300)
+        self.signal_combobox.currentIndexChanged.connect(self.signal_combobox_changed_cb)  
+        hlayout.addWidget(self.signal_combobox)
 
         self.rules_tab_layout.addLayout(hlayout) 
 
         #------------
-        lwidth = 50
+        lwidth = 30
         label = QLabel("Min")
         label.setFixedWidth(lwidth)
-        label.setAlignment(QtCore.Qt.AlignRight)
+        # label.setAlignment(QtCore.Qt.AlignRight)
+        label.setAlignment(QtCore.Qt.AlignCenter)
+        # label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)  # horiz,vert
+        label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        # label.setStyleSheet("QLabel {background-color: red;}")
         hlayout.addWidget(label) 
+
         self.rule_min_val = QLineEdit()
         self.rule_min_val.setText('0.')
         self.rule_min_val.setValidator(QtGui.QDoubleValidator())
@@ -213,7 +271,8 @@ class Rules(QWidget):
         #------------
         label = QLabel("Base")
         label.setFixedWidth(lwidth)
-        label.setAlignment(QtCore.Qt.AlignRight)
+        # label.setAlignment(QtCore.Qt.AlignRight)
+        label.setAlignment(QtCore.Qt.AlignCenter)
         hlayout.addWidget(label) 
         self.rule_base_val = QLineEdit()
         self.rule_base_val.setText('1.e-5')
@@ -223,41 +282,51 @@ class Rules(QWidget):
         #------------
         label = QLabel("Max")
         label.setFixedWidth(lwidth)
-        label.setAlignment(QtCore.Qt.AlignRight)
+        # label.setAlignment(QtCore.Qt.AlignRight)
+        label.setAlignment(QtCore.Qt.AlignCenter)
         hlayout.addWidget(label) 
         self.rule_max_val = QLineEdit()
         self.rule_max_val.setText('3.e-4')
         self.rule_max_val.setValidator(QtGui.QDoubleValidator())
         hlayout.addWidget(self.rule_max_val)
 
+        hlayout.addStretch(1)
         self.rules_tab_layout.addLayout(hlayout) 
+
         #------------
         hlayout = QHBoxLayout()
 
-        label = QLabel("Signal")
-        label.setFixedWidth(50)
-        # label.setAlignment(QtCore.Qt.AlignCenter)
+        hbox = QHBoxLayout()
+        label = QLabel("Response")
         # label.setAlignment(QtCore.Qt.AlignLeft)
-        label.setAlignment(QtCore.Qt.AlignRight)
-        hlayout.addWidget(label) 
+        label.setAlignment(QtCore.Qt.AlignCenter)
+        hbox.addWidget(label) 
 
-        self.signal_combobox = QComboBox()
-        self.signal_combobox.setFixedWidth(300)
-        self.signal_combobox.currentIndexChanged.connect(self.signal_combobox_changed_cb)  
-        hlayout.addWidget(self.signal_combobox)
+        # self.response_combobox = QComboBox()
+        self.response_model = QStandardItemModel()
+        self.response_combobox = ExtendedCombo()
+        self.response_combobox.setModel(self.response_model)
+        self.response_combobox.setModelColumn(0)
+
+        # self.response_combobox.setFixedWidth(300)
+        hbox.addWidget(self.response_combobox) 
+        # self.response_combobox.currentIndexChanged.connect(self.signal_combobox_changed_cb)  
+
+        hlayout.addLayout(hbox)
 
         # self.celltype_combobox.currentIndexChanged.connect(self.celltype_combobox_changed_cb)  
-
+        #--------------
         self.up_down_combobox = QComboBox()
         self.up_down_combobox.setFixedWidth(110)
         self.up_down_combobox.addItem("increases")
         self.up_down_combobox.addItem("decreases")
         hlayout.addWidget(self.up_down_combobox)
 
-        lwidth = 70
+        lwidth = 60
         label = QLabel("Half-max")
         label.setFixedWidth(lwidth)
-        label.setAlignment(QtCore.Qt.AlignRight)
+        # label.setAlignment(QtCore.Qt.AlignRight)
+        label.setAlignment(QtCore.Qt.AlignCenter)
         hlayout.addWidget(label) 
         self.rule_half_max = QLineEdit()
         self.rule_half_max.setText('21.')
@@ -267,7 +336,8 @@ class Rules(QWidget):
 
         label = QLabel("Hill power")
         label.setFixedWidth(lwidth)
-        label.setAlignment(QtCore.Qt.AlignRight)
+        # label.setAlignment(QtCore.Qt.AlignRight)
+        label.setAlignment(QtCore.Qt.AlignCenter)
         hlayout.addWidget(label) 
         self.rule_hill_power = QLineEdit()
         self.rule_hill_power.setText('4')
@@ -1036,6 +1106,73 @@ class Rules(QWidget):
         return
 
     #-----------------------------------------------------------
+    def fill_signals_widget(self,substrates):
+        signal_l = []
+        for s in substrates:
+            signal_l.append(s)
+        for s in substrates:
+            signal_l.append("intracellular " + s)
+        for s in substrates:
+            signal_l.append(s + " gradient")
+
+        signal_l += ["pressure","volume"]
+
+        for ct in self.celldef_tab.param_d.keys():
+            signal_l.append("contact with " + ct)
+
+        signal_l += ["contact with live cell","contact with dead cell","contact with BM","damage","dead","total attack time","time"]
+
+        #---- finally, use the signal_l list to create the combobox entries
+        for idx,signal in enumerate(signal_l):
+            item = QStandardItem(signal)
+            self.signal_model.setItem(idx, 0, item)
+
+        self.signal_combobox.setCurrentIndex(0)
+
+    #-----------------------------------------------------------
+    def fill_responses_widget(self,substrates):
+        response_l = []
+
+        # TODO: figure out how best to organize these responses
+        for s in substrates:
+            response_l.append(s + " secretion")
+        for s in substrates:
+            response_l.append(s + " secretion target")
+        for s in substrates:
+            response_l.append(s + " uptake")
+        for s in substrates:
+            response_l.append(s + " export")
+        response_l.append("cycle entry")
+        for idx in range(6):
+            response_l.append("exit from cycle phase " + str(idx))
+
+        response_l += ["apoptosis","necrosis","migration speed","migration bias","migration persistence time"]
+
+        for s in substrates:
+            response_l.append("chemotactic response to " + s)
+
+        response_l += ["cell-cell adhesion", "cell-cell adhesion elastic constant"]
+
+        for ct in self.celldef_tab.param_d.keys():
+            response_l.append("adhesive affinity to " + ct)
+
+        response_l += ["relative maximum adhesion distance","cell-cell repulsion","cell-BM adhesion","cell-BM repulsion","phagocytose dead cell"]
+
+        for ct in self.celldef_tab.param_d.keys():
+            response_l.append("phagocytose " + ct)
+
+        for verb in ["phagocytose ","attack ","fuse to ","transform to "]:  # verb
+            for ct in self.celldef_tab.param_d.keys():
+                response_l.append(verb + ct)
+
+        #---- finally, use the response_l list to create the combobox entries
+        for idx,response in enumerate(response_l):
+            item = QStandardItem(response)
+            self.response_model.setItem(idx, 0, item)
+
+        self.response_combobox.setCurrentIndex(0)
+
+    #-----------------------------------------------------------
     def fill_gui(self):
         # logging.debug(f'\n\n------------\nrules_tab.py: fill_gui():')
         print(f'\n\n------------\nrules_tab.py: fill_gui():')
@@ -1059,70 +1196,17 @@ class Rules(QWidget):
             else:
                 substrates.append(key)
 
-        #----- responses  (rwh TODO: add dict for default params for each entry)
-        for s in substrates:
-            self.response_combobox.addItem(s + " secretion")
-        for s in substrates:
-            self.response_combobox.addItem(s + " secretion target")
-        for s in substrates:
-            self.response_combobox.addItem(s + " uptake")
-        for s in substrates:
-            self.response_combobox.addItem(s + " export")
-        self.response_combobox.addItem("cycle entry")
-        for idx in range(6):
-            self.response_combobox.addItem("exit from cycle phase " + str(idx))
-        self.response_combobox.addItem("apoptosis")
-        self.response_combobox.addItem("necrosis")
-        self.response_combobox.addItem("migration speed")
-        self.response_combobox.addItem("migration bias")
-        self.response_combobox.addItem("migration persistence time")
-        for s in substrates:
-            self.response_combobox.addItem("chemotactic response to " + s)
-        self.response_combobox.addItem("cell-cell adhesion")
-        self.response_combobox.addItem("cell-cell adhesion elastic constant")
-        for ct in self.celldef_tab.param_d.keys():
-            self.response_combobox.addItem("adhesive affinity to " + ct)
-        self.response_combobox.addItem("relative maximum adhesion distance")
-        self.response_combobox.addItem("cell-cell repulsion")
-        self.response_combobox.addItem("cell-BM adhesion")
-        self.response_combobox.addItem("cell-BM repulsion")
-        self.response_combobox.addItem("phagocytose dead cell")
-        for ct in self.celldef_tab.param_d.keys():
-            self.response_combobox.addItem("phagocytose " + ct)
-        for adj in ["phagocytose ","attack ","fuse to ","transform to "]:
-            for ct in self.celldef_tab.param_d.keys():
-                self.response_combobox.addItem(adj + ct)
-            
-            
+        #----- (rwh TODO: add dict for default params for each entry)
+        self.fill_signals_widget(substrates)
 
-        #----- signals
-        for s in substrates:
-            self.signal_combobox.addItem(s)
-        for s in substrates:
-            self.signal_combobox.addItem("intracellular " + s)
-        for s in substrates:
-            self.signal_combobox.addItem(s + " gradient")
-        self.signal_combobox.addItem("pressure")
-        self.signal_combobox.addItem("volume")
+        self.fill_responses_widget(substrates)
 
-        for ct in self.celldef_tab.param_d.keys():
-            self.signal_combobox.addItem("contact with " + ct)
-
-        self.signal_combobox.addItem("contact with live cell")
-        self.signal_combobox.addItem("contact with dead cell")
-        self.signal_combobox.addItem("contact with BM")
-        self.signal_combobox.addItem("damage")
-        self.signal_combobox.addItem("dead")
-        self.signal_combobox.addItem("total attack time")
-        self.signal_combobox.addItem("time")
-
-
-
-    #   <cell_rules type="csv" enabled="true">
-    #     <folder>./config</folder>
-    #     <filename>dicty_rules.csv</filename>
-    # </cell_rules>      
-    # </cell_definitions>
+        #----------------------------------
+        #   <cell_rules type="csv" enabled="true">
+        #     <folder>./config</folder>
+        #     <filename>dicty_rules.csv</filename>
+        # </cell_rules>      
+        # </cell_definitions>
         uep = self.xml_root.find(".//cell_definitions//cell_rules")
         # logging.debug(f'rules_tab.py: fill_gui(): <cell_rules> = {uep}')
         print(f'rules_tab.py: fill_gui(): <cell_rules> =  {uep}')
