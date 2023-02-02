@@ -379,13 +379,18 @@ class CellDef(QWidget):
         logging.debug(f'new name= {self.current_cell_def}')
         self.param_d[self.current_cell_def] = self.param_d.pop(prev_name)  # sweet
 
+        self.live_phagocytosis_celltype = self.current_cell_def
+        self.attack_rate_celltype = self.current_cell_def
+        self.fusion_rate_celltype = self.current_cell_def
+        self.transformation_rate_celltype = self.current_cell_def
+
         self.renamed_celltype(prev_name, self.current_cell_def)
 
     #----------------------------------------------------------------------
     # @QtCore.Slot()
     # Make a new cell_def (that's a copy of the currently selected one)
     def copy_cell_def(self):
-        # print('------ copy_cell_def')
+        # print('------ copy_cell_def()')
         cdname_copy = "cell_def%02d" % self.new_cell_def_count
         cdname_original = self.current_cell_def
         self.param_d[cdname_copy] = copy.deepcopy(self.param_d[cdname_original])
@@ -2972,12 +2977,20 @@ class CellDef(QWidget):
         self.param_d[self.current_cell_def]['dead_phagocytosis_rate'] = text
     #--------------------------------------------------------
     def live_phagocytosis_rate_changed(self,text):
+        # print("live_phagocytosis_rate_changed:  self.live_phagocytosis_celltype=",self.live_phagocytosis_celltype)
         # print("live_phagocytosis_rate_changed:  text=",text)
-        self.param_d[self.current_cell_def]['live_phagocytosis_rate'][self.live_phagocytosis_celltype] = text
+
+        celltype_name = self.live_phagocytosis_dropdown.currentText()
+
+        # self.param_d[self.current_cell_def]['live_phagocytosis_rate'][self.live_phagocytosis_celltype] = text
+        self.param_d[self.current_cell_def]['live_phagocytosis_rate'][celltype_name] = text
     #--------------------------------------------------------
     def attack_rate_changed(self,text):
         # print("attack_rate_changed:  text=",text)
-        self.param_d[self.current_cell_def]['attack_rate'][self.attack_rate_celltype] = text
+        celltype_name = self.attack_rate_dropdown.currentText()
+
+        # self.param_d[self.current_cell_def]['attack_rate'][self.attack_rate_celltype] = text
+        self.param_d[self.current_cell_def]['attack_rate'][celltype_name] = text
     #--------------------------------------------------------
     def damage_rate_changed(self,text):
         # print("damage_rate_changed:  text=",text)
@@ -2985,11 +2998,15 @@ class CellDef(QWidget):
     #--------------------------------------------------------
     def fusion_rate_changed(self,text):
         # print("fusion_rate_changed:  text=",text)
-        self.param_d[self.current_cell_def]['fusion_rate'][self.fusion_rate_celltype] = text
+        celltype_name = self.fusion_rate_dropdown.currentText()
+        # self.param_d[self.current_cell_def]['fusion_rate'][self.fusion_rate_celltype] = text
+        self.param_d[self.current_cell_def]['fusion_rate'][celltype_name] = text
     #--------------------------------------------------------
     def transformation_rate_changed(self,text):
         # print("transformation_rate_changed:  text=",text)
-        self.param_d[self.current_cell_def]['transformation_rate'][self.transformation_rate_celltype] = text
+        celltype_name = self.cell_transformation_dropdown.currentText()
+        # self.param_d[self.current_cell_def]['transformation_rate'][self.transformation_rate_celltype] = text
+        self.param_d[self.current_cell_def]['transformation_rate'][celltype_name] = text
 
 
     #--------------------------------------------------------
@@ -5557,7 +5574,6 @@ class CellDef(QWidget):
                 self.cell_transformation_dropdown.setItemText(idx, new_name)
             if old_name == self.cell_adhesion_affinity_dropdown.itemText(idx):
                 self.cell_adhesion_affinity_dropdown.setItemText(idx, new_name)
-
             if self.ics_tab and (old_name == self.ics_tab.celltype_combobox.itemText(idx)):
                 self.ics_tab.celltype_combobox.setItemText(idx, new_name)
             if self.rules_tab and (old_name == self.rules_tab.celltype_combobox.itemText(idx)):
