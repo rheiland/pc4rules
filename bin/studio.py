@@ -675,9 +675,8 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
     # Only valid for desktop, not on nanoHUB
     def save_as_cb(self):
         save_as_file = QFileDialog.getSaveFileName(self,'',".")
-        # if save_as_file:
-        #     print(save_as_file)
-        #     print(" save_as_file: ",save_as_file) # writing to:  ('/Users/heiland/git/PhysiCell-model-builder/rwh.xml', 'All Files (*)')
+        if save_as_file:
+            print(" save_as_file= ",save_as_file) # writing to:  ('/Users/heiland/git/PhysiCell-model-builder/rwh.xml', 'All Files (*)')
 
         self.config_tab.fill_xml()
         self.microenv_tab.fill_xml()
@@ -686,7 +685,7 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
 
         # save_as_file = "mymodel.xml"
         print("studio.py:  save_as_cb: writing to: ",save_as_file) # writing to:  ('/Users/heiland/git/PhysiCell-model-builder/rwh.xml', 'All Files (*)')
-        self.tree.write(save_as_file)
+        self.tree.write(save_as_file[0])
 
     def view_plot_range_cb(self):
         self.vis_tab.show_hide_plot_range()
