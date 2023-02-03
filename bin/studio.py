@@ -60,7 +60,7 @@ def SingleBrowse(self):
 class PhysiCellXMLCreator(QWidget):
     # def __init__(self, parent = None):
     # ex = PhysiCellXMLCreator(vis_flag, config_file, skip_validate_flag, exec_file)
-    def __init__(self, show_vis_flag, config_file, skip_validate_flag, exec_file_flag, parent = None):
+    def __init__(self, show_vis_flag, config_file, skip_validate_flag, exec_file, parent = None):
         super(PhysiCellXMLCreator, self).__init__(parent)
 
         # self.rules_plot = RulesPlotWindow()
@@ -172,6 +172,7 @@ class PhysiCellXMLCreator(QWidget):
             # self.setWindowTitle(self.title_prefix + copy_file)
             self.setWindowTitle(self.title_prefix + self.current_xml_file)
             self.config_file = self.current_xml_file  # to Save
+            self.exec_file = exec_file
             # self.setWindowTitle(self.title_prefix + "pc4learning")
         # self.add_new_model(copy_file, True)
         # self.config_file = "config_samples/" + name + ".xml"
@@ -277,6 +278,7 @@ class PhysiCellXMLCreator(QWidget):
         if not self.nanohub_flag:
             self.run_tab.config_file = self.config_file
             self.run_tab.config_xml_name.setText(self.config_file)
+            self.run_tab.exec_name.setText(self.exec_file)
         # self.run_tab.nanohub_flag = self.nanohub_flag
 
         # self.run_tab.xmin = 
