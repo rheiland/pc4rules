@@ -576,6 +576,7 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
         self.celldef_tab.xml_root = self.xml_root
         # self.cell_customdata_tab.xml_root = self.xml_root
         self.user_params_tab.xml_root = self.xml_root
+        self.rules_tab.xml_root = self.xml_root
         # self.run_tab.xml_root = self.xml_root
 
         # --------Now fill all tabs' params------

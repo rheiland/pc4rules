@@ -370,6 +370,12 @@ class Rules(QWidget):
         delete_rule_btn.setStyleSheet("background-color: yellow")
         hlayout.addWidget(delete_rule_btn)
 
+        self.clear_button = QPushButton("Clear all")
+        self.clear_button.setFixedWidth(150)
+        self.clear_button.setStyleSheet("background-color: yellow")
+        self.clear_button.clicked.connect(self.clear_rules)
+        hlayout.addWidget(self.clear_button) 
+
         self.validate_button = QPushButton("Validate all")
         self.validate_button.setEnabled(False)
         self.validate_button.setFixedWidth(150)
@@ -388,15 +394,20 @@ class Rules(QWidget):
         # person_groupbox.setLayout(form_layout)
 
 
-        self.load_rules_button = QPushButton("Load rules (.csv)")
-        self.load_rules_button.setFixedWidth(170)
-        # print("Load button.size= ",self.load_rules_button.size())
-        self.load_rules_button.setStyleSheet("background-color: lightgreen")
-        self.load_rules_button.clicked.connect(self.load_rules_cb)
-        hlayout.addWidget(self.load_rules_button) 
+        self.import_rules_button = QPushButton("Import")
+        self.import_rules_button.setFixedWidth(100)
+        self.import_rules_button.setStyleSheet("background-color: lightgreen")
+        self.import_rules_button.clicked.connect(self.import_rules_cb)
+        hlayout.addWidget(self.import_rules_button) 
         # hbox.addWidget(self.load_rules_button) 
 
-        self.save_button = QPushButton("Save rules")
+        self.load_button = QPushButton("Load")
+        self.load_button.setFixedWidth(100)
+        self.load_button.setStyleSheet("background-color: lightgreen")
+        self.load_button.clicked.connect(self.load_rules_cb)
+        hlayout.addWidget(self.load_button) 
+
+        self.save_button = QPushButton("Save")
         self.save_button.setFixedWidth(100)
         self.save_button.setStyleSheet("background-color: lightgreen")
         self.save_button.clicked.connect(self.save_rules_cb)
@@ -672,6 +683,17 @@ class Rules(QWidget):
         #     return
 
     #-----------------------------------------------------------
+    def clear_rules(self):
+        print("\n---------------- clear_rules():")
+        for irow in range(self.num_rules):
+            for idx in range(9):  # hard-code for now :/
+                self.rules_table.cellWidget(irow, idx).setText('')
+
+            self.rules_table.cellWidget(irow,self.rules_applydead_idx).setChecked(False)
+
+        self.num_rules = 0
+
+    #-----------------------------------------------------------
     def fill_rules(self, full_rules_fname):
         print("\n---------------- fill_rules():  full_rules_fname=",full_rules_fname)
         print("fill_rules():  os.getcwd()=",os.getcwd())
@@ -680,20 +702,33 @@ class Rules(QWidget):
                 # with open("config/rules.csv", 'rU') as f:
                 with open(full_rules_fname, 'rU') as f:
                     csv_reader_obj = csv.reader(f)
-                    irow = 0
+                    # irow = 0
+                    irow = self.num_rules  # append
                     for elm in csv_reader_obj:
                         # ['tumor', 'cycle entry', '0', '1.70E-05', '7.00E-04', 'oxygen', 'increases', '21.5', '4', '0']
                         # print("------ cell type= ",elm[0])
-                        print("------ elm= ",elm)
+                        print("elm= ",elm)
+                        # elm=  ['tumor', 'cycle entry', '0.', '1.e-5', '3.e-4', 'pressure', 'decreases', '2.', '4', '0']
+
                         if elm[0][0] == "#":
                             continue
+
+                        cell_type = elm[0]
+                        if cell_type not in self.celldef_tab.param_d.keys():
+                            print(f'ERROR: {cell_type} is not a valid cell type name')
+                            self.show_warning(f'ERROR: {cell_type} is not a valid cell type name')
+                            return
+
                         # self.rules_table.setCellWidget(irow, self.custom_icol_name, w_varname)   # 1st col
                         for idx in range(9):  # hard-code for now :/
+                            # print("idx=",idx)
                             self.rules_table.cellWidget(irow, idx).setText(elm[idx])
 
                         if int(elm[9]) == 0:
+                            # print("setting dead checkbox False")
                             self.rules_table.cellWidget(irow,self.rules_applydead_idx).setChecked(False)
                         else:
+                            # print("setting dead checkbox True")
                             self.rules_table.cellWidget(irow,self.rules_applydead_idx).setChecked(True)
                         irow += 1
                     self.num_rules = irow
@@ -973,19 +1008,19 @@ class Rules(QWidget):
         # print("------------- LEAVING  delete_custom_data_cb")
 
     #-----------------------------------------------------------
-    def load_rules_cb(self):
+    def import_rules_cb(self):
         # filePath = QFileDialog.getOpenFileName(self,'',".",'*.xml')
         filePath = QFileDialog.getOpenFileName(self,'',".")
         full_path_rules_name = filePath[0]
-        # logging.debug(f'\nload_rules_cb():  full_path_rules_name ={full_path_rules_name}')
-        print(f'\nload_rules_cb():  full_path_rules_name ={full_path_rules_name}')
+        # logging.debug(f'\nimport_rules_cb():  full_path_rules_name ={full_path_rules_name}')
+        print(f'\nimport_rules_cb():  full_path_rules_name ={full_path_rules_name}')
         basename = os.path.basename(full_path_rules_name)
-        print(f'load_rules_cb():  basename ={basename}')
+        print(f'import_rules_cb():  basename ={basename}')
         dirname = os.path.dirname(full_path_rules_name)
-        print(f'load_rules_cb():  dirname ={dirname}')
+        print(f'import_rules_cb():  dirname ={dirname}')
         # if (len(full_path_rules_name) > 0) and Path(full_path_rules_name):
         if (len(full_path_rules_name) > 0) and Path(full_path_rules_name).is_file():
-            print("load_rules_cb():  filePath is valid")
+            print("import_rules_cb():  filePath is valid")
             # logging.debug(f'     filePath is valid')
             print("len(full_path_rules_name) = ", len(full_path_rules_name) )
             # logging.debug(f'     len(full_path_rules_name) = {len(full_path_rules_name)}' )
@@ -1004,14 +1039,28 @@ class Rules(QWidget):
 
             # arg! how does it not catch this as an invalid file above??
             # in fill_rules():  full_rules_fname= /Users/heiland/git/data/tumor_rules.csv
-            print(f'load_rules_cb():  (guess) calling fill_rules() with ={full_path_rules_name}')
+            print(f'import_rules_cb():  (guess) calling fill_rules() with ={full_path_rules_name}')
             # if not self.nanohub_flag:
             #     full_path_rules_name = os.path.abspath(os.path.join(self.homedir,'tmpdir',folder_name, file_name))
-            #     print(f'load_rules_cb():  NOW calling fill_rules() with ={full_path_rules_name}')
+            #     print(f'import_rules_cb():  NOW calling fill_rules() with ={full_path_rules_name}')
 
             self.fill_rules(full_path_rules_name)
 
         else:
+            print("import_rules_cb():  full_path_model_name is NOT valid")
+
+    #-----------------------------------------------------------
+    # load/append more
+    def load_rules_cb(self):
+        try:
+            full_path_rules_name = os.path.join(self.rules_folder.text(), self.rules_file.text())
+            print(f'\nload_rules_cb():  full_path_rules_name ={full_path_rules_name}')
+        # if (len(full_path_rules_name) > 0) and Path(full_path_rules_name):
+            if (len(full_path_rules_name) > 0) and Path(full_path_rules_name).is_file():
+                print(f'load_rules_cb():  calling fill_rules() with ={full_path_rules_name}')
+
+            self.fill_rules(full_path_rules_name)
+        except:
             print("load_rules_cb():  full_path_model_name is NOT valid")
 
     #-----------------------------------------------------------
@@ -1241,7 +1290,7 @@ class Rules(QWidget):
             print(f'rules_tab.py: fill_gui()----- calling fill_rules() with  full_rules_fname=  {full_rules_fname}')
             # if not self.nanohub_flag:
             #     full_path_rules_name = os.path.abspath(os.path.join(self.homedir,'tmpdir',folder_name, file_name))
-            #     print(f'load_rules_cb():  fill_gui()-- NOW calling fill_rules() with ={full_path_rules_name}')
+            #     print(f'import_rules_cb():  fill_gui()-- NOW calling fill_rules() with ={full_path_rules_name}')
             #     self.fill_rules(full_path_rules_name)
             # else:
             #     self.fill_rules(full_rules_fname)
@@ -1268,6 +1317,8 @@ class Rules(QWidget):
             self.rules_folder.setText("")
             self.rules_file.setText("")
             self.rules_enabled.setChecked(False)
+            # self.rules_table.clear()  # NO, this is not the droid you're looking for
+            self.clear_rules()
         return
 
     #-----------------------------------------------------------
