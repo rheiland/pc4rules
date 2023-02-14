@@ -88,11 +88,13 @@ class ICs(QWidget):
 
         self.show_plot_range = False
 
-        self.d1_value = 100.
-        self.d2_value = 200.
+        self.numcells_l = []    # list containing # of cells per "Plot" action
+        self.cell_radii = []   # master list for *all* cells' (radii) plotted in ICs
 
         self.x0_value = 0.
         self.y0_value = 0.
+        self.d1_value = 100.
+        self.d2_value = 200.
 
         # self.config_file = "mymodel.xml"
         # self.reset_model_flag = True
@@ -151,7 +153,7 @@ class ICs(QWidget):
         hbox.addWidget(label)
 
         self.celltype_combobox = QComboBox()
-        self.celltype_combobox.setFixedWidth(label_width)
+        self.celltype_combobox.setFixedWidth(200)  # how wide is sufficient?
         hbox.addWidget(self.celltype_combobox)
         hbox.addStretch(1)  # not sure about this, but keeps buttons shoved to left
         self.vbox.addLayout(hbox)
@@ -269,7 +271,7 @@ class ICs(QWidget):
         #----
         hbox = QHBoxLayout()
         btn_width = 80
-        self.clear_button = QPushButton("Clear")
+        self.clear_button = QPushButton("Clear all")
         self.clear_button.setFixedWidth(btn_width)
         self.clear_button.setStyleSheet("background-color: yellow")
         self.clear_button.clicked.connect(self.clear_cb)
@@ -281,6 +283,14 @@ class ICs(QWidget):
         # self.plot_button.clicked.connect(self.uniform_random_pts_annulus_cb)
         self.plot_button.clicked.connect(self.plot_cb)
         hbox.addWidget(self.plot_button)
+
+        self.undo_button = QPushButton("Undo last")
+        self.undo_button.setFixedWidth(btn_width)
+        self.undo_button.setStyleSheet("background-color: yellow")
+        # self.plot_button.clicked.connect(self.uniform_random_pts_annulus_cb)
+        self.undo_button.clicked.connect(self.undo_cb)
+        hbox.addWidget(self.undo_button)
+
         hbox.addStretch(1)  # not sure about this, but keeps buttons shoved to left
 
         self.vbox.addLayout(hbox)
@@ -307,12 +317,12 @@ class ICs(QWidget):
         label.setAlignment(QtCore.Qt.AlignRight)
         hbox.addWidget(label)
 
-        self.output_folder = QLineEdit("config")
-        rx_valid_varname = QtCore.QRegExp("^[a-zA-Z][a-zA-Z0-9_]+$")
-        name_validator = QtGui.QRegExpValidator(rx_valid_varname)
-        self.output_folder.setValidator(name_validator)
-        # self.output_folder.returnPressed.connect(self.output_folder_cb)
-        hbox.addWidget(self.output_folder)
+        self.csv_folder = QLineEdit("config")
+        # rx_valid_varname = QtCore.QRegExp("^[a-zA-Z][a-zA-Z0-9_]+$")
+        # name_validator = QtGui.QRegExpValidator(rx_valid_varname)
+        # self.csv_folder.setValidator(name_validator)
+        # self.csv_folder.returnPressed.connect(self.csv_folder_cb)
+        hbox.addWidget(self.csv_folder)
 
         #--
         # hbox = QHBoxLayout()
@@ -321,8 +331,7 @@ class ICs(QWidget):
         hbox.addWidget(label)
 
         self.output_file = QLineEdit("cells.csv")
-        self.output_file.setValidator(name_validator)
-        # self.output_folder.returnPressed.connect(self.output_folder_cb)
+        # self.output_file.setValidator(name_validator)
         hbox.addWidget(self.output_file)
         hbox.addStretch(1)  # not sure about this, but keeps buttons shoved to left
         self.vbox.addLayout(hbox)
@@ -508,6 +517,8 @@ class ICs(QWidget):
         self.fill_celltype_combobox()
         self.csv_array = np.empty([1,4])
         self.csv_array = np.delete(self.csv_array,0,0)
+        self.numcells_l = []
+        self.cell_radii = []
 
         self.plot_xmin = float(self.config_tab.xmin.text())
         self.plot_xmax = float(self.config_tab.xmax.text())
@@ -643,6 +654,7 @@ class ICs(QWidget):
     #------------------------------------------------------------
     def plot_cb(self):
         self.reset_plot_range()
+        # self.cell_radii = []
 
         cdef = self.celltype_combobox.currentText()
         volume = float(self.celldef_tab.param_d[cdef]["volume_total"])
@@ -663,6 +675,52 @@ class ICs(QWidget):
                 self.uniform_random_pts_rect()
             elif "hex" in self.fill_combobox.currentText():
                 self.hex_pts_rect()
+
+    #------------------------------------------------------------
+    def undo_cb(self):
+        # print("----- undo_cb(): self.numcells_l = ",self.numcells_l)
+        # nlast = self.numcells_l[-1]
+        nlast = self.numcells_l.pop()
+        ntotal = len(self.csv_array)
+        
+        self.reset_plot_range()
+        # erase everything, redraw below
+        self.ax0.cla()
+
+        self.csv_array = self.csv_array[0:ntotal-nlast, :]
+        self.cell_radii = self.cell_radii[0:ntotal-nlast]
+        # print("---after:")
+        # print("csv_array=",self.csv_array)
+        # print("csv_array.shape=",self.csv_array.shape)
+        xvals = self.csv_array[:, 0]
+        yvals = self.csv_array[:, 1]
+        cell_colors = []
+
+        # rvals = 8
+        rvals = self.cell_radii
+
+        for idx in range(len(xvals)):
+            cell_type = int(self.csv_array[idx,3])
+            cell_colors.append(self.color_by_celltype[cell_type])
+        # print(cell_colors)
+
+        if (self.cells_edge_checked_flag):
+            try:
+                # self.circles(xvals,yvals, s=rvals, color=self.color_by_celltype[cell_type_index], edgecolor='black', linewidth=0.5, alpha=self.alpha_value)
+                self.circles(xvals,yvals, s=rvals, color=cell_colors, edgecolor='black', linewidth=0.5, alpha=self.alpha_value)
+            except (ValueError):
+                pass
+        else:
+            self.circles(xvals,yvals, s=rvals, color=cell_colors, alpha=self.alpha_value)
+
+        self.ax0.set_aspect(1.0)
+
+        self.ax0.set_xlim(self.plot_xmin, self.plot_xmax)
+        self.ax0.set_ylim(self.plot_ymin, self.plot_ymax)
+
+        # self.update_plots()
+        self.canvas.update()
+        self.canvas.draw()
 
     #----------------------------------
     def hex_pts_rect(self):
@@ -704,10 +762,15 @@ class ICs(QWidget):
                 xval_offset = self.x0_value + xval + (y_idx%2) * self.cell_radius
 
                 xlist.append(xval_offset)
-                ylist.append(yval + self.y0_value)
-                self.csv_array = np.append(self.csv_array,[[xval,yval,zval, cell_type_index]],axis=0)
+                yval_offset = yval + self.y0_value
+                ylist.append(yval_offset)
+                # self.csv_array = np.append(self.csv_array,[[xval,yval,zval, cell_type_index]],axis=0)
+                self.csv_array = np.append(self.csv_array,[[xval_offset,yval_offset,zval, cell_type_index]],axis=0)
                 rlist.append(rval)
+                self.cell_radii.append(self.cell_radius)
                 count+=1
+
+        self.numcells_l.append(count)
 
         xvals = np.array(xlist)
         yvals = np.array(ylist)
@@ -791,11 +854,17 @@ class ICs(QWidget):
                 #     print(xv,',',yval,',0.0, 2, 101')  # x,y,z, cell type, [sub]cell ID
                 #     # plt.plot(xval_offset,yval,'ro',markersize=30)
 
-                    xlist.append(xval_offset + self.x0_value)
-                    ylist.append(yval + self.y0_value)
-                    self.csv_array = np.append(self.csv_array,[[xval_offset,yval,zval, cell_type_index]],axis=0)
+                    xval_offset += self.x0_value
+                    xlist.append(xval_offset)
+                    yval_offset = yval + self.y0_value
+                    ylist.append(yval_offset)
+                    # self.csv_array = np.append(self.csv_array,[[xval_offset,yval,zval, cell_type_index]],axis=0)
+                    self.csv_array = np.append(self.csv_array,[[xval_offset,yval_offset,zval, cell_type_index]],axis=0)
                     rlist.append(rval)
+                    self.cell_radii.append(self.cell_radius)
                     count+=1
+
+        self.numcells_l.append(count)
 
         xvals = np.array(xlist)
         yvals = np.array(ylist)
@@ -833,6 +902,7 @@ class ICs(QWidget):
         zval = 0.0
         cell_type_index = self.celltype_combobox.currentIndex()
         ncells = int(self.num_cells.text())
+        self.numcells_l.append(ncells)
         # print("self.d1_value= ", self.d1_value)
         while True:
             sign1 = 1
@@ -848,6 +918,7 @@ class ICs(QWidget):
             ylist.append(yval)
             self.csv_array = np.append(self.csv_array,[[xval,yval,zval, cell_type_index]],axis=0)
             rlist.append(rval)
+            self.cell_radii.append(self.cell_radius)
             count+=1
             if count == ncells:
                 break
@@ -904,6 +975,8 @@ class ICs(QWidget):
         cell_type_index = self.celltype_combobox.currentIndex()
 
         ncells = int(self.num_cells.text())
+        self.numcells_l.append(ncells)
+
         # R1 = float(self.d1val.text())
         # R1 = self.d1_value
         R1 = self.d1_value - self.x0_value
@@ -936,8 +1009,9 @@ class ICs(QWidget):
                 xlist.append(xval)
                 ylist.append(yval)
                 rlist.append(rval)
-                self.csv_array = np.append(self.csv_array,[[xval,yval,zval, cell_type_index]],axis=0)
                 # print(count,xval,yval)
+                self.csv_array = np.append(self.csv_array,[[xval,yval,zval, cell_type_index]],axis=0)
+                self.cell_radii.append(self.cell_radius)
                 count+=1
                 if count == ncells:
                     break
@@ -978,13 +1052,14 @@ class ICs(QWidget):
 
         self.csv_array = np.empty([1,4])  # should probably *just* np.delete, but meh
         self.csv_array = np.delete(self.csv_array,0,0)
+        self.cell_radii = []
 
     def save_cb(self):
         # print("\n------- ics_tab.py: save_cb() -------")
         # x = y = z = np.arange(0.0,5.0,1.0)
         # np.savetxt('cells.csv', (x,y,z), delimiter=',')
         # print(self.csv_array)
-        dir_name = self.output_folder.text()
+        dir_name = self.csv_folder.text()
         # print(f'dir_name={dir_name}<end>')
         if len(dir_name) > 0 and not os.path.isdir(dir_name):
             os.makedirs(dir_name)
