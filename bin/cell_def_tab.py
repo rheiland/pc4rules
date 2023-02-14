@@ -95,8 +95,7 @@ class CellDef(QWidget):
             self.row_color1 = "background-color: darkslategray"  # = rgb( 47, 79, 79)
             self.row_color2 =  "background-color: rgb( 99, 99, 10)"
 
-        self.ics_tab = None  # set in studio.py
-        self.rules_tab = None # set in studio.py
+        self.ics_tab = None
 
         self.current_cell_def = None
         self.cell_adhesion_affinity_celltype = None
@@ -398,6 +397,7 @@ class CellDef(QWidget):
 
         # we need to add the newly created cell def into each cell def's interaction/transformation dicts, with values of the copy
         sval = self.default_sval
+        # print('1) copy_cell_def(): param_d.keys=',self.param_d.keys())
         for cdname in self.param_d.keys():    # for each cell def
             # for cdname2 in self.param_d[cdname]['live_phagocytosis_rate'].keys():    # for each cell def's 
             for cdname2 in self.param_d.keys():    # for each cell def
@@ -412,6 +412,7 @@ class CellDef(QWidget):
                 # else: # use values from copied cell def
 
         logging.debug(f'--> copy_cell_def():\n {self.param_d[cdname_copy]}')
+        # print('2) copy_cell_def(): param_d.keys=',self.param_d.keys())
 
         # for k in self.param_d.keys():
         #     print(" (pre-new vals)===>>> ",k, " : ", self.param_d[k])
@@ -424,6 +425,7 @@ class CellDef(QWidget):
         # self.cell_type_name.setText(cdname)
 
         self.add_new_celltype(cdname_copy)  # add to all qcomboboxes that have celltypes (e.g., in interactions)
+        # print('3) copy_cell_def(): param_d.keys=',self.param_d.keys())
 
         #-----  Update this new cell def's widgets' values
         num_items = self.tree.invisibleRootItem().childCount()
@@ -476,9 +478,6 @@ class CellDef(QWidget):
         # ICs
         if self.ics_tab:
             self.ics_tab.celltype_combobox.removeItem(item_idx)
-        # Rules
-        if self.rules_tab:
-            self.rules_tab.celltype_combobox.removeItem(item_idx)
 
         # But ALSO remove from the dicts:
         logging.debug(f'Also delete {self.param_d[self.current_cell_def]} from dicts')
@@ -5424,8 +5423,6 @@ class CellDef(QWidget):
 
         if self.ics_tab:
             self.ics_tab.celltype_combobox.addItem(name)
-        if self.rules_tab:
-            self.rules_tab.celltype_combobox.addItem(name)
 
     #-----------------------------------------------------------------------------------------
     # def delete_substrate(self, item_idx):
@@ -5576,8 +5573,6 @@ class CellDef(QWidget):
                 self.cell_adhesion_affinity_dropdown.setItemText(idx, new_name)
             if self.ics_tab and (old_name == self.ics_tab.celltype_combobox.itemText(idx)):
                 self.ics_tab.celltype_combobox.setItemText(idx, new_name)
-            if self.rules_tab and (old_name == self.rules_tab.celltype_combobox.itemText(idx)):
-                self.rules_tab.celltype_combobox.setItemText(idx, new_name)
 
         # 2) OMG, also update all param_d dicts that involve cell def names
         logging.debug(f'--- renaming all dicts with cell defs')
@@ -5714,7 +5709,7 @@ class CellDef(QWidget):
         #-----
         self.param_d[cdname]["necrosis_death_rate"] = sval
 
-        self.param_d[cdname]["necrosis_trate01"] = '9e.9'
+        self.param_d[cdname]["necrosis_trate01"] = '9e9'
         self.param_d[cdname]['necrosis_trate01_fixed'] = False
         self.param_d[cdname]["necrosis_trate12"] = '1.15741e-05'
         self.param_d[cdname]['necrosis_trate12_fixed'] = True
@@ -6103,10 +6098,9 @@ class CellDef(QWidget):
 
         # self.param_d[cdname]['cell_adhesion_affinity'][cdname2] = '1.0'  # default affinity
         if self.cell_adhesion_affinity_celltype:
-            # logging.debug(f'key 0= {self.cell_adhesion_affinity_celltype}')
-            print(f'\nkey 0= {self.cell_adhesion_affinity_celltype}')
-            print(f'\nkeys 1= {self.param_d.keys()}')
-            print(f'\nkeys 2= {self.param_d[cdname]["cell_adhesion_affinity"].keys()}')
+            logging.debug(f'key 0= {self.cell_adhesion_affinity_celltype}')
+            logging.debug(f'keys 1= {self.param_d.keys()}')
+            logging.debug(f'keys 2= {self.param_d[cdname]["cell_adhesion_affinity"].keys()}')
             self.cell_adhesion_affinity.setText(self.param_d[cdname]["cell_adhesion_affinity"][self.cell_adhesion_affinity_celltype])
 
         self.set_relative_equilibrium_distance.setText(self.param_d[cdname]["mechanics_relative_equilibrium_distance"])
@@ -6408,6 +6402,8 @@ class CellDef(QWidget):
         #     print()
 
         # fill in the GUI with this cell def's params
+
+        # self.live_phagocytosis_celltype = self.current_cell_def
 
         self.update_cycle_params()
         self.update_death_params()
@@ -7117,6 +7113,7 @@ class CellDef(QWidget):
     def fill_xml_interactions(self,pheno,cdef):
         if self.debug_print_fill_xml:
             logging.debug(f'------------------- fill_xml_interactions():  cdef= {cdef}')
+            # print(f'------------------- fill_xml_interactions():  cdef= {cdef}')
 
         interactions = ET.SubElement(pheno, "cell_interactions")
         interactions.text = self.indent12  # affects indent of child
@@ -7132,12 +7129,15 @@ class CellDef(QWidget):
         lpr.tail = "\n" + self.indent12
 
         logging.debug(f'--- live_phagocytosis_rate= {self.param_d[cdef]["live_phagocytosis_rate"]}')
+        # print("live_phagocytosis_rate keys=",self.param_d[cdef]['live_phagocytosis_rate'].keys())
         for key in self.param_d[cdef]['live_phagocytosis_rate'].keys():
             logging.debug(f'  key in live_phagocytosis_rate= {key}')
+            # print(f'  key in live_phagocytosis_rate= {key}')
             if len(key) == 0:
                 continue
             val = self.param_d[cdef]['live_phagocytosis_rate'][key]
             logging.debug(f'{key}  --> {val}')
+            # print(f'{key}  --> {val}')
             elm = ET.SubElement(lpr, 'phagocytosis_rate', {"name":key, "units":self.default_rate_units})
             elm.text = val
             elm.tail = self.indent16
@@ -7444,6 +7444,7 @@ class CellDef(QWidget):
     def fill_xml(self):
         # pass
         logging.debug(f'\n\n----------- cell_def_tab.py: fill_xml(): ----------')
+        # print(f'\n\n----------- cell_def_tab.py: fill_xml(): ----------')
         # print("self.param_d.keys() = ",self.param_d.keys())
         # print()
         # print("self.param_d['default'] = ",self.param_d['default'])
