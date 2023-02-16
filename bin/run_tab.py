@@ -9,6 +9,7 @@ import sys
 import os
 import time
 import logging
+from pretty_print_xml import pretty_print
 from pathlib import Path
 from PyQt5 import QtCore, QtGui
 # from PyQt5.QtWidgets import *
@@ -157,6 +158,7 @@ class RunModel(QWidget):
     def message(self, s):
         self.text.appendPlainText(s)
 
+
     def run_model_cb(self):
         logging.debug(f'===========  run_model_cb():  ============')
 
@@ -207,7 +209,7 @@ class RunModel(QWidget):
             # self.celldef_tab.fill_xml()
             # self.user_params_tab.fill_xml()
             print("\n\n ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-            print("run_tab.py: ----> writing modified model to ",new_config_file)
+            print("run_tab.py: (nanoHUB)----> writing modified model to ",new_config_file)
             self.tree.write(new_config_file)  # saves modified XML to tmpdir/config.xml 
 
             # Operate from tmpdir. XML: <folder>,</folder>; temporary output goes here.  May be copied to cache later.
@@ -239,7 +241,7 @@ class RunModel(QWidget):
                 shutil.move(self.output_dir, tname)
             os.makedirs(self.output_dir)
 
-            # write the default config file to tmpdir
+            # write the config file to the output dir
             # new_config_file = "tmpdir/config.xml"  # use Path; work on Windows?
             tdir = os.path.abspath(self.output_dir)
             new_config_file = Path(tdir,"config.xml")
@@ -254,8 +256,9 @@ class RunModel(QWidget):
             # self.celldef_tab.fill_xml()
             # self.user_params_tab.fill_xml()
             print("\n\n ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-            print("run_tab.py: ----> writing modified model to ",self.config_file)
+            print("run_tab.py: (not nanoHUB) ----> writing modified model to ",self.config_file)
             self.tree.write(self.config_file)
+            pretty_print(self.config_file, self.config_file)
 
         #-----------------------------------------
         auto_load_params = True
@@ -330,7 +333,7 @@ class RunModel(QWidget):
                     msgBox.setText(msg)
                     msgBox.setStandardButtons(QMessageBox.Ok)
                     msgBox.exec()
-                    return
+                    # return
 
                 print(f'\nrun_tab.py: running: {exec_str_rel}, {xml_str_abs}')
                 # self.p.start(exec_str, [xml_str])
