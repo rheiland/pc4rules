@@ -18,6 +18,7 @@ import zipfile
 from pathlib import Path
 import xml.etree.ElementTree as ET  # https://docs.python.org/2/library/xml.etree.elementtree.html
 from xml.dom import minidom
+from pretty_print_xml import pretty_print
 
 # from matplotlib.colors import TwoSlopeNorm
 
@@ -688,7 +689,9 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
 
         # save_as_file = "mymodel.xml"
         print("studio.py:  save_as_cb: writing to: ",save_as_file) # writing to:  ('/Users/heiland/git/PhysiCell-model-builder/rwh.xml', 'All Files (*)')
-        self.tree.write(save_as_file[0])
+        out_file = save_as_file[0]
+        self.tree.write(out_file)
+        pretty_print(out_file, out_file)
 
     def view_plot_range_cb(self):
         self.vis_tab.show_hide_plot_range()
@@ -745,6 +748,7 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
 
         # self.tree.write(outfile)
         self.tree.write(self.config_file)  # does this close the file??
+        pretty_print(self.config_file, self.config_file)
 
         # rwh NOTE: after saving the .xml, do we need to read it back in to reflect changes.
         # self.tree = ET.parse(self.config_file)
