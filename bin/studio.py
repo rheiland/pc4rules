@@ -2,9 +2,8 @@
 Authors:
 Randy Heiland (heiland@iu.edu)
 Dr. Paul Macklin (macklinp@iu.edu)
+Rf. doc/Credits.md
 
---- Versions ---
-0.1 - initial version
 """
 # https://doc.qt.io/qtforpython/gettingstarted.html
 
