@@ -792,7 +792,7 @@ class Rules(QWidget):
 
         Y = self.hill(X, half_max=half_max, hill_power=hill_power)
         if "decreases" in self.up_down_combobox.currentText():
-            Y *= -1
+            Y = 1.0 - Y
 
         self.rules_plot.ax0.plot(X,Y,'r-')
         self.rules_plot.ax0.grid()
@@ -1051,7 +1051,7 @@ class Rules(QWidget):
         hill_power = int(self.rules_table.cellWidget(irow, self.rules_hillpower_idx).text())
         Y = self.hill(X, half_max=half_max, hill_power=hill_power)
         if "decreases" in self.rules_table.cellWidget(irow, self.rules_direction_idx).text():
-            Y *= -1
+            Y = 1.0 - Y
         self.rules_plot.ax0.plot(X,Y,'r-')
         self.rules_plot.ax0.grid()
         title = "cell type: " + self.rules_table.cellWidget(irow, self.rules_celltype_idx).text()
