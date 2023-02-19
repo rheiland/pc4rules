@@ -220,10 +220,16 @@ class Rules(QWidget):
 
         # hlayout.addWidget(QLabel("                         ")) 
 
-        self.plot_rule_button = QPushButton("Plot")
-        self.plot_rule_button.setStyleSheet("background-color: lightgreen")
-        self.plot_rule_button.clicked.connect(self.plot_rule_cb)
-        hlayout.addWidget(self.plot_rule_button,0) 
+        self.plot_new_rule_button = QPushButton("Plot")
+        self.plot_new_rule_button.setStyleSheet("background-color: lightgreen")
+        self.plot_new_rule_button.clicked.connect(self.plot_new_rule_cb)
+        hlayout.addWidget(self.plot_new_rule_button,0) 
+
+        self.reuse_plot_flag = True
+        self.reuse_plot_w = QCheckBox("reuse plot window")
+        self.reuse_plot_w.setChecked(self.reuse_plot_flag)
+        self.reuse_plot_w.setEnabled(False)
+        hlayout.addWidget(self.reuse_plot_w)
 
         #------------
         hlayout.addStretch(1)
@@ -275,7 +281,8 @@ class Rules(QWidget):
         label.setAlignment(QtCore.Qt.AlignCenter)
         hlayout.addWidget(label) 
         self.rule_base_val = QLineEdit()
-        self.rule_base_val.setText('1.e-5')
+        # self.rule_base_val.setText('1.e-5')
+        self.rule_base_val.setText('0.1')
         self.rule_base_val.setValidator(QtGui.QDoubleValidator())
         hlayout.addWidget(self.rule_base_val)
 
@@ -286,7 +293,8 @@ class Rules(QWidget):
         label.setAlignment(QtCore.Qt.AlignCenter)
         hlayout.addWidget(label) 
         self.rule_max_val = QLineEdit()
-        self.rule_max_val.setText('3.e-4')
+        # self.rule_max_val.setText('3.e-4')
+        self.rule_max_val.setText('1.0')
         self.rule_max_val.setValidator(QtGui.QDoubleValidator())
         hlayout.addWidget(self.rule_max_val)
 
@@ -329,7 +337,7 @@ class Rules(QWidget):
         label.setAlignment(QtCore.Qt.AlignCenter)
         hlayout.addWidget(label) 
         self.rule_half_max = QLineEdit()
-        self.rule_half_max.setText('21.')
+        self.rule_half_max.setText('0.5')
         self.rule_half_max.setFixedWidth(100)
         self.rule_half_max.setValidator(QtGui.QDoubleValidator())
         hlayout.addWidget(self.rule_half_max)
@@ -370,7 +378,14 @@ class Rules(QWidget):
         delete_rule_btn.setStyleSheet("background-color: yellow")
         hlayout.addWidget(delete_rule_btn)
 
-        self.clear_button = QPushButton("Clear all")
+        plot_rule_btn = QPushButton("Plot rule")
+        plot_rule_btn.setFixedWidth(150)
+        # delete_rule_btn.setAlignment(QtCore.Qt.AlignLeft)
+        plot_rule_btn.clicked.connect(self.plot_rule_cb)
+        plot_rule_btn.setStyleSheet("background-color: lightgreen")
+        hlayout.addWidget(plot_rule_btn)
+
+        self.clear_button = QPushButton("Clear table")
         self.clear_button.setFixedWidth(150)
         self.clear_button.setStyleSheet("background-color: yellow")
         self.clear_button.clicked.connect(self.clear_rules)
@@ -696,6 +711,8 @@ class Rules(QWidget):
     #-----------------------------------------------------------
     def fill_rules(self, full_rules_fname):
         print("\n---------------- fill_rules():  full_rules_fname=",full_rules_fname)
+        self.clear_rules()
+
         print("fill_rules():  os.getcwd()=",os.getcwd())
         if os.path.isfile(full_rules_fname):
             try:
@@ -759,13 +776,12 @@ class Rules(QWidget):
         z = (x / half_max)** hill_power; 
         return z/(1.0 + z); 
 
-    def update_rule_plot(self):
+    def plot_new_rule_cb(self):
+        if not self.rules_plot:
+            self.rules_plot = RulesPlotWindow()
+        # if not self.reuse_plot_w.isChecked():
+            # self.rules_plot = RulesPlotWindow()
         self.rules_plot.ax0.cla()
-        # self.plot_svg(self.current_svg_frame)
-        # self.frame_count.setText(str(self.current_svg_frame))
-        low = 0
-        high = 4
-        # X = np.linspace( low,high, 1001 ); 
         min_val = float(self.rule_min_val.text())
         base_val = float(self.rule_base_val.text())
         max_val = float(self.rule_max_val.text())
@@ -773,7 +789,11 @@ class Rules(QWidget):
 
         half_max = float(self.rule_half_max.text())
         hill_power = int(self.rule_hill_power.text())
+
         Y = self.hill(X, half_max=half_max, hill_power=hill_power)
+        if "decreases" in self.up_down_combobox.currentText():
+            Y *= -1
+
         self.rules_plot.ax0.plot(X,Y,'r-')
         self.rules_plot.ax0.grid()
         title = "cell type: " + self.celltype_combobox.currentText()
@@ -782,21 +802,13 @@ class Rules(QWidget):
         self.rules_plot.ax0.set_title(title, fontsize=10)
         self.rules_plot.canvas.update()
         self.rules_plot.canvas.draw()
-
-    def plot_rule_cb(self):
-        if not self.rules_plot:
-            self.rules_plot = RulesPlotWindow()
-            # self.rules_plot.ax0.plot([0,1,2,3,4], [10,1,20,3,40])
-            self.update_rule_plot()
-            self.rules_plot.show()
-        else:
-            self.update_rule_plot()
-            self.rules_plot.show()
+        self.rules_plot.show()
 
         # self.myscroll.setWidget(self.canvas) # self.config_params = QWidget()
         # self.rules_plot.ax0.plot([0,1,2,3,4], [10,1,20,3,40])
         # self.rules_plot.layout.addWidget(self.canvas)
         return
+
 
     #-----------------------------------------------------------
     def add_rule_cb(self):
@@ -1006,6 +1018,51 @@ class Rules(QWidget):
 
         # print(" 2)master_custom_var_d= ",self.master_custom_var_d)
         # print("------------- LEAVING  delete_custom_data_cb")
+
+    #--------------------------------------------------------
+    # plot the selected rule in the table
+    def plot_rule_cb(self):
+        irow = self.rules_table.currentRow()
+        
+        if (irow < 0) or (self.num_rules == 0):
+            msg = "You need to select a row in the table"
+            self.show_warning(msg)
+            return
+
+        print("------------- plot_rule_cb(), irow=",irow)
+        # rule_str = self.rules_table.cellWidget(irow, self.rules_celltype_idx).text()
+        # rule_str += self.rules_table.cellWidget(irow, self.rules_response_idx).text()
+        # rule_str += self.rules_table.cellWidget(irow, self.rules_minval_idx).text()
+        # rule_str += self.rules_table.cellWidget(irow, self.rules_baseval_idx).text()
+        # rule_str += self.rules_table.cellWidget(irow, self.rules_maxval_idx).text()
+        # rule_str += self.rules_table.cellWidget(irow, self.rules_signal_idx).text()
+        # rule_str += self.rules_table.cellWidget(irow, self.rules_direction_idx).text()
+        # rule_str += self.rules_table.cellWidget(irow, self.rules_halfmax_idx).text()
+        # rule_str += self.rules_table.cellWidget(irow, self.rules_hillpower_idx).text()
+        if not self.rules_plot:
+            self.rules_plot = RulesPlotWindow()
+        self.rules_plot.ax0.cla()
+        min_val = float(self.rules_table.cellWidget(irow, self.rules_minval_idx).text())
+        # base_val = float(self.rule_base_val.text())
+        max_val = float(self.rules_table.cellWidget(irow, self.rules_maxval_idx).text())
+        X = np.linspace(min_val,max_val, 101) 
+
+        half_max = float(self.rules_table.cellWidget(irow, self.rules_halfmax_idx).text())
+        hill_power = int(self.rules_table.cellWidget(irow, self.rules_hillpower_idx).text())
+        Y = self.hill(X, half_max=half_max, hill_power=hill_power)
+        if "decreases" in self.rules_table.cellWidget(irow, self.rules_direction_idx).text():
+            Y *= -1
+        self.rules_plot.ax0.plot(X,Y,'r-')
+        self.rules_plot.ax0.grid()
+        title = "cell type: " + self.rules_table.cellWidget(irow, self.rules_celltype_idx).text()
+        self.rules_plot.ax0.set_xlabel('signal: ' + self.rules_table.cellWidget(irow, self.rules_signal_idx).text())
+        self.rules_plot.ax0.set_ylabel('response: ' + self.rules_table.cellWidget(irow, self.rules_response_idx).text())
+        self.rules_plot.ax0.set_title(title, fontsize=10)
+        self.rules_plot.canvas.update()
+        self.rules_plot.canvas.draw()
+
+        self.rules_plot.show()
+        return
 
     #-----------------------------------------------------------
     def import_rules_cb(self):
