@@ -1,3 +1,12 @@
+"""
+vis_tab.py - provide visualization on Plot tab. Cells can be plotted on top of substrates/signals.
+
+Authors:
+Randy Heiland (heiland@iu.edu)
+Dr. Paul Macklin (macklinp@iu.edu)
+Rf. Credits.md
+"""
+
 import sys
 import os
 import time
@@ -70,9 +79,9 @@ class Vis(QWidget):
         self.fix_cmap_flag = False
         self.cells_edge_checked_flag = True
 
-        self.num_contours = 15
-        self.num_contours = 25
         self.num_contours = 50
+        self.shading_choice = 'auto'  # 'auto'(was 'flat') vs. 'gouraud' (smooth)
+
         self.fontsize = 7
         self.label_fontsize = 6
         self.title_fontsize = 10
@@ -81,6 +90,7 @@ class Vis(QWidget):
         self.plot_cells_svg = True
         # self.plot_svg_flag = False
         self.field_index = 4  # substrate (0th -> 4 in the .mat)
+        self.substrate_name = None
         self.plot_xmin = None
         self.plot_xmax = None
         self.plot_ymin = None
@@ -95,16 +105,23 @@ class Vis(QWidget):
         self.reset_model_flag = True
         self.xmin = -80
         self.xmax = 80
+        self.xdel = 20
         self.x_range = self.xmax - self.xmin
 
         self.ymin = -50
         self.ymax = 100
+        self.ydel = 20
         self.y_range = self.ymax - self.ymin
 
         self.aspect_ratio = 0.7
 
-        self.show_grid = False
+        self.view_shading = None
+        self.show_voxel_grid = False
+        self.show_mech_grid = False
         self.show_vectors = False
+
+        # self.show_grid = False
+        # self.show_vectors = False
 
         self.show_nucleus = False
         # self.show_edge = False
@@ -556,6 +573,15 @@ class Vis(QWidget):
         # print("\n>>> calling update_plots() from "+ inspect.stack()[0][3])
         self.update_plots()
 
+
+    def update_output_dir(self, dir_path):
+        if os.path.isdir(dir_path):
+            print("update_output_dir(): yes, it is a dir path", dir_path)
+        else:
+            print("update_output_dir(): NO, it is NOT a dir path", dir_path)
+        self.output_dir = dir_path
+        self.output_folder.setText(dir_path)
+
     def reset_plot_range(self):
         try:  # due to the initial callback
             self.my_xmin.setText(str(self.xmin))
@@ -614,7 +640,7 @@ class Vis(QWidget):
         self.update_plots()
 
     def cmin_cmax_cb(self):
-        print("----- cmin_cmax_cb:")
+        # print("----- cmin_cmax_cb:")
         try:  # due to the initial callback
             self.cmin_value = float(self.cmin.text())
             self.cmax_value = float(self.cmax.text())
@@ -625,7 +651,7 @@ class Vis(QWidget):
         self.update_plots()
 
     def init_plot_range(self, config_tab):
-        print("----- init_plot_range:")
+        # print("----- init_plot_range:")
         try:
             # beware of widget callback 
             self.my_xmin.setText(config_tab.xmin.text())
@@ -688,6 +714,7 @@ class Vis(QWidget):
     def substrates_combobox_changed_cb(self,idx):
         # print("----- vis_tab.py: substrates_combobox_changed_cb: idx = ",idx)
         self.field_index = 4 + idx # substrate (0th -> 4 in the .mat)
+        self.substrate_name = self.substrates_combobox.currentText()
         # print("\n>>> calling update_plots() from "+ inspect.stack()[0][3])
         self.update_plots()
 
@@ -959,6 +986,9 @@ class Vis(QWidget):
         self.substrates_combobox.setEnabled(bval)
         self.substrates_cbar_combobox.setEnabled(bval)
 
+        if self.view_shading:
+            self.view_shading.setEnabled(bval)
+
         if not self.substrates_checked_flag:
             if self.cax1:
                 self.cax1.remove()
@@ -970,17 +1000,17 @@ class Vis(QWidget):
         self.update_plots()
 
     def fix_cmap_toggle_cb(self,bval):
-        print("fix_cmap_toggle_cb():")
+        # print("fix_cmap_toggle_cb():")
         self.fix_cmap_flag = bval
         self.cmin.setEnabled(bval)
         self.cmax.setEnabled(bval)
 
             # self.substrates_combobox.addItem(s)
         # field_name = self.field_dict[self.substrate_choice.value]
-        print("self.field_dict= ",self.field_dict)
+        # print("self.field_dict= ",self.field_dict)
         # field_name = self.field_dict[self.substrates_combobox.currentText()]
         field_name = self.substrates_combobox.currentText()
-        print("field_name= ",field_name)
+        # print("field_name= ",field_name)
         # print(self.cmap_fixed_toggle.value)
         # if (self.colormap_fixed_toggle.value):  # toggle on fixed range
         if (bval):  # toggle on fixed range
@@ -1282,6 +1312,29 @@ class Vis(QWidget):
             pass
 
     #------------------------------------------------------------
+    # This is primarily used for debugging.
+    def plot_voxel_grid(self):
+        # print("--------- plot_voxel_grid()")
+        #  Should we actually parse/use coords in initial.xml, e.g.:
+        #      <x_coordinates delimiter=" ">-490.000000 -470.000000
+        # xoffset = self.xdel / 2.0
+        # yoffset = self.ydel / 2.0
+        # xmax = self.xmax - xoffset
+        # xmin = self.xmin + xoffset
+        # ymax = self.ymax - yoffset
+        # ymin = self.ymin + yoffset
+
+        xs = np.arange(self.xmin,self.xmax+1,self.xdel)  # DON'T try to use np.linspace!
+        # print("xs= ",xs)
+        ys = np.arange(self.ymin,self.ymax+1,self.ydel)
+        # print("ys= ",ys)
+        hlines = np.column_stack(np.broadcast_arrays(xs[0], ys, xs[-1], ys))
+        vlines = np.column_stack(np.broadcast_arrays(xs, ys[0], xs, ys[-1]))
+        grid_lines = np.concatenate([hlines, vlines]).reshape(-1, 2, 2)
+        line_collection = LineCollection(grid_lines, color="gray", linewidths=0.5)
+        self.ax0.add_collection(line_collection)
+
+    #------------------------------------------------------------
     def plot_mechanics_grid(self):
         numx = int((self.xmax - self.xmin)/self.mech_voxel_size)
         numy = int((self.ymax - self.ymin)/self.mech_voxel_size)
@@ -1290,7 +1343,7 @@ class Vis(QWidget):
         hlines = np.column_stack(np.broadcast_arrays(xs[0], ys, xs[-1], ys))
         vlines = np.column_stack(np.broadcast_arrays(xs, ys[0], xs, ys[-1]))
         grid_lines = np.concatenate([hlines, vlines]).reshape(-1, 2, 2)
-        line_collection = LineCollection(grid_lines, color="gray", linewidths=0.5)
+        line_collection = LineCollection(grid_lines, color="red", linewidths=0.7)
         # ax = plt.gca()
         # ax.add_collection(line_collection)
         self.ax0.add_collection(line_collection)
@@ -1305,11 +1358,13 @@ class Vis(QWidget):
 
         # return
 
-        if self.show_grid:
+        if self.show_voxel_grid:
+            self.plot_voxel_grid()
+        if self.show_mech_grid:
             self.plot_mechanics_grid()
 
-        if self.show_vectors:
-            self.plot_vecs()
+        # if self.show_vectors:
+        #     self.plot_vecs()
 
         # current_frame = frame
         # self.current_frame = frame
@@ -1574,6 +1629,12 @@ class Vis(QWidget):
 
         if self.disable_cell_scalar_cb:
             return
+            
+        if self.show_voxel_grid:
+            self.plot_voxel_grid()
+        if self.show_mech_grid:
+            self.plot_mechanics_grid()
+
 
         xml_file_root = "output%08d.xml" % frame
         xml_file = os.path.join(self.output_dir, xml_file_root)
@@ -1759,16 +1820,18 @@ class Vis(QWidget):
             try:
                 # self.fixed_contour_levels = MaxNLocator(nbins=self.num_contours).tick_values(self.cmin_value, self.cmax_value)
                 # substrate_plot = self.ax0.contourf(xgrid, ygrid, M[self.field_index, :].reshape(self.numy, self.numx), levels=levels, extend='both', cmap=self.colormap_dd.value, fontsize=self.fontsize)
-                substrate_plot = self.ax0.contourf(xgrid, ygrid, zvals, self.num_contours, levels=self.fixed_contour_levels, extend='both', cmap=cbar_name)
+                # substrate_plot = self.ax0.contourf(xgrid, ygrid, zvals, self.num_contours, levels=self.fixed_contour_levels, extend='both', cmap=cbar_name)
+                substrate_plot = self.ax0.pcolormesh(xgrid,ygrid, zvals, shading=self.shading_choice, cmap=cbar_name, vmin=self.cmin_value, vmax=self.cmax_value)
             except:
                 contour_ok = False
-                print('got error on contourf with fixed cmap range.')
+                print('\nWARNING: exception with fixed colormap range. Will not update plot.')
         else:    
             try:
-                substrate_plot = self.ax0.contourf(xgrid, ygrid, zvals, self.num_contours, cmap=cbar_name)  # self.colormap_dd.value)
+                # substrate_plot = self.ax0.contourf(xgrid, ygrid, zvals, self.num_contours, cmap=cbar_name)  # self.colormap_dd.value)
+                substrate_plot = self.ax0.pcolormesh(xgrid,ygrid, zvals, shading=self.shading_choice, cmap=cbar_name) #, vmin=Z.min(), vmax=Z.max())
             except:
                 contour_ok = False
-                print('got error on contourf with dynamic cmap range.')
+                print('\nWARNING: exception with dynamic colormap range. Will not update plot.')
 
         # in case we want to plot a "0.0" contour line
         # if self.field_index > 4:
@@ -1797,6 +1860,7 @@ class Vis(QWidget):
             self.cbar1.ax.tick_params(labelsize=self.fontsize)
             # print("(init substrate) self.figure.axes= ",self.figure.axes)
 
+        self.cbar1.set_label(self.substrate_name)
         self.ax0.set_title(self.title_str, fontsize=self.title_fontsize)
         self.ax0.set_xlim(self.plot_xmin, self.plot_xmax)
         self.ax0.set_ylim(self.plot_ymin, self.plot_ymax)
