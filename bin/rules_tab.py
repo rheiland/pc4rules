@@ -1191,7 +1191,7 @@ class Rules(QWidget):
                     # else:
                     #     rule_str += '0'
                     # print(rule_str)
-                    f.write(rule_str)
+                    f.write(rule_str + '\n')
                 f.close()
                 print(f'rules_tab.py: Wrote rules to {full_rules_fname}')
 
