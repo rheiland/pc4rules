@@ -1,37 +1,69 @@
 """
 Authors:
 Randy Heiland (heiland@iu.edu)
-Adam Morrow, Grant Waldrow, Drew Willis, Kim Crevecoeur
 Dr. Paul Macklin (macklinp@iu.edu)
-
---- Versions ---
-0.1 - initial version
+Rf. Credits.md
 """
 
 import sys
+import logging
 import os
-# import xml.etree.ElementTree as ET  # https://docs.python.org/2/library/xml.etree.elementtree.html
-from PyQt5 import QtCore, QtGui
-from PyQt5.QtWidgets import QFrame,QApplication,QWidget,QTabWidget,QLineEdit, QVBoxLayout,QRadioButton,QLabel,QCheckBox,QComboBox,QScrollArea,QGridLayout,QPushButton,QFileDialog
 from pathlib import Path
+import xml.etree.ElementTree as ET  # https://docs.python.org/2/library/xml.etree.elementtree.html
+from PyQt5 import QtCore, QtGui
+from PyQt5.QtWidgets import QFrame,QApplication,QWidget,QTabWidget,QLineEdit,QHBoxLayout,QVBoxLayout,QRadioButton,QPushButton, QLabel,QCheckBox,QComboBox,QScrollArea,QGridLayout, QFileDialog
+# from PyQt5.QtWidgets import QMessageBox
 
-class QHLine(QFrame):
-    def __init__(self):
-        super(QHLine, self).__init__()
-        self.setFrameShape(QFrame.HLine)
-        self.setFrameShadow(QFrame.Sunken)
+class QCheckBox_custom(QCheckBox):  # it's insane to have to do this!
+    def __init__(self,name):
+        super(QCheckBox, self).__init__(name)
 
+        checkbox_style = """
+                QCheckBox::indicator:checked {
+                    background-color: rgb(255,255,255);
+                    border: 1px solid #5A5A5A;
+                    width : 15px;
+                    height : 15px;
+                    border-radius : 3px;
+                    image: url(images:checkmark.png);
+                }
+                QCheckBox::indicator:unchecked
+                {
+                    background-color: rgb(255,255,255);
+                    border: 1px solid #5A5A5A;
+                    width : 15px;
+                    height : 15px;
+                    border-radius : 3px;
+                }
+                """
+        self.setStyleSheet(checkbox_style)
 
 class Config(QWidget):
-    def __init__(self, nanohub_flag):
-    # def __init__(self):
+    # def __init__(self, nanohub_flag):
+    def __init__(self, studio_flag):
         super().__init__()
         # global self.config_params
 
-        self.nanohub_flag = nanohub_flag
-        # self.nanohub_flag = False
+        self.default_time_units = "min"
+
+        # self.nanohub_flag = nanohub_flag
+        self.nanohub_flag = False
+
+        self.studio_flag = studio_flag
+        self.vis_tab = None
 
         self.xml_root = None
+
+        qlineedit_style = """
+        QLineEdit: disabled {
+            background-color:#ff0000;
+        }
+
+        QLineEdit: enabled {
+            background-color:#ffffff;
+        }
+        """
+        self.setStyleSheet(qlineedit_style)
 
         # self.tab = QWidget()
         # self.tabs.resize(200,5)
@@ -146,13 +178,8 @@ class Config(QWidget):
         self.zdel.setValidator(QtGui.QDoubleValidator())
         self.config_tab_layout.addWidget(self.zdel, idx_row,5,1,1) # w, row, column, rowspan, colspan
 
-        #----------
-        self.virtual_walls = QCheckBox("Virtual walls")
-        idx_row += 1
-        self.config_tab_layout.addWidget(self.virtual_walls, idx_row,1,1,1) # w, row, column, rowspan, colspan
-
         #============  Misc ================================
-        label = QLabel("Misc runtime parameters")
+        label = QLabel("Times")
         label.setFixedHeight(label_height)
         label.setStyleSheet("background-color: orange")
         label.setAlignment(QtCore.Qt.AlignCenter)
@@ -168,9 +195,69 @@ class Config(QWidget):
         self.max_time.setValidator(QtGui.QDoubleValidator())
         self.config_tab_layout.addWidget(self.max_time, idx_row,1,1,1) # w, row, column, rowspan, colspan
 
-        label = QLabel("min")
+        label = QLabel(self.default_time_units)
         label.setAlignment(QtCore.Qt.AlignLeft)
         self.config_tab_layout.addWidget(label, idx_row,2,1,1) # w, row, column, rowspan, colspan
+
+        label = QLabel("Diffusion dt")
+        label.setAlignment(QtCore.Qt.AlignRight)
+        idx_row += 1
+        self.config_tab_layout.addWidget(label, idx_row,0,1,1) # w, row, column, rowspan, colspan
+
+        self.diffusion_dt = QLineEdit()
+        self.diffusion_dt.setValidator(QtGui.QDoubleValidator())
+        self.config_tab_layout.addWidget(self.diffusion_dt, idx_row,1,1,1) # w, row, column, rowspan, colspan
+
+        label = QLabel(self.default_time_units)
+        label.setAlignment(QtCore.Qt.AlignLeft)
+        self.config_tab_layout.addWidget(label, idx_row,2,1,1) # w, row, column, rowspan, colspan
+
+        label = QLabel("Mechanics dt")
+        label.setAlignment(QtCore.Qt.AlignRight)
+        idx_row += 1
+        self.config_tab_layout.addWidget(label, idx_row,0,1,1) # w, row, column, rowspan, colspan
+
+        self.mechanics_dt = QLineEdit()
+        self.mechanics_dt.setValidator(QtGui.QDoubleValidator())
+        self.config_tab_layout.addWidget(self.mechanics_dt, idx_row,1,1,1) # w, row, column, rowspan, colspan
+
+        label = QLabel(self.default_time_units)
+        label.setAlignment(QtCore.Qt.AlignLeft)
+        self.config_tab_layout.addWidget(label, idx_row,2,1,1) # w, row, column, rowspan, colspan
+
+        label = QLabel("Phenotype dt")
+        label.setAlignment(QtCore.Qt.AlignRight)
+        idx_row += 1
+        self.config_tab_layout.addWidget(label, idx_row,0,1,1) # w, row, column, rowspan, colspan
+
+        self.phenotype_dt = QLineEdit()
+        self.phenotype_dt.setValidator(QtGui.QDoubleValidator())
+        self.config_tab_layout.addWidget(self.phenotype_dt, idx_row,1,1,1) # w, row, column, rowspan, colspan
+
+        label = QLabel(self.default_time_units)
+        label.setAlignment(QtCore.Qt.AlignLeft)
+        self.config_tab_layout.addWidget(label, idx_row,2,1,1) # w, row, column, rowspan, colspan
+
+        #============  Misc ================================
+        label = QLabel("Misc runtime parameters")
+        label.setFixedHeight(label_height)
+        label.setStyleSheet("background-color: orange")
+        label.setAlignment(QtCore.Qt.AlignCenter)
+        idx_row += 1
+        self.config_tab_layout.addWidget(label, idx_row,0,1,20) # w, row, column, rowspan, colspan
+
+        # label = QLabel("Max Time")
+        # label.setAlignment(QtCore.Qt.AlignRight)
+        # idx_row += 1
+        # self.config_tab_layout.addWidget(label, idx_row,0,1,1) # w, row, column, rowspan, colspan
+
+        # self.max_time = QLineEdit()
+        # self.max_time.setValidator(QtGui.QDoubleValidator())
+        # self.config_tab_layout.addWidget(self.max_time, idx_row,1,1,1) # w, row, column, rowspan, colspan
+
+        # label = QLabel("min")
+        # label.setAlignment(QtCore.Qt.AlignLeft)
+        # self.config_tab_layout.addWidget(label, idx_row,2,1,1) # w, row, column, rowspan, colspan
 
         #----------
         label = QLabel("# threads")
@@ -180,9 +267,6 @@ class Config(QWidget):
 
         self.num_threads = QLineEdit()
         self.num_threads.setValidator(QtGui.QIntValidator())
-        if self.nanohub_flag:
-            self.num_threads.setEnabled(False)
-            self.num_threads.setText('4')
         self.config_tab_layout.addWidget(self.num_threads, idx_row,1,1,1) # w, row, column, rowspan, colspan
         #----------
 
@@ -194,46 +278,84 @@ class Config(QWidget):
         self.folder = QLineEdit()
         if self.nanohub_flag:
             self.folder.setEnabled(False)
-            self.folder.setText('.')
         self.config_tab_layout.addWidget(self.folder, idx_row,1,1,1) # w, row, column, rowspan, colspan
+        # self.folder.textChanged.connect(self.folder_name_cb)
+
+        # if self.studio_flag:
+        #     label = QLabel("Plot/Legend folder")
+        #     label.setAlignment(QtCore.Qt.AlignRight)
+        #     self.config_tab_layout.addWidget(label, idx_row,2,1,1) # w, row, column, rowspan, colspan
+
+        #     self.plot_folder = QLineEdit()
+        #     self.config_tab_layout.addWidget(self.plot_folder, idx_row,3,1,1) # w, row, column, rowspan, colspan
+        #     self.plot_folder.textChanged.connect(self.plot_folder_name_cb)
+
+        #---------------------------------------------------------------------------
+        # Use a vbox/hbox instead of the grid for better alignment :/
+        vbox = QVBoxLayout()
+        vbox.addLayout(self.config_tab_layout)
 
         #------------------
-        label = QLabel("Save data:")
+        hbox = QHBoxLayout()
+
+        label = QLabel("Save data (intervals):")
+        label.setFixedWidth(150)
         idx_row += 1
-        self.config_tab_layout.addWidget(label, idx_row,0,1,1) # w, row, column, rowspan, colspan
+        icol = 0
+        # self.config_tab_layout.addWidget(label, idx_row,icol,1,1) # w, row, column, rowspan, colspan
+        hbox.addWidget(label)
 
         #------
-        self.save_svg = QCheckBox("SVG")
-        self.config_tab_layout.addWidget(self.save_svg, idx_row,1,1,1) # w, row, column, rowspan, colspan
-
-        label = QLabel("every")
-        label_width = 110
-        label_width = 60
-        self.config_tab_layout.addWidget(label, idx_row,2,1,1) # w, row, column, rowspan, colspan
+        cbox_width = 60
+        self.save_svg = QCheckBox_custom("SVG")
+        self.save_svg.setFixedWidth(cbox_width)
+        self.save_svg.setChecked(True)
+        self.save_svg.clicked.connect(self.svg_clicked)
+        icol += 2
+        # self.config_tab_layout.addWidget(self.save_svg, idx_row,icol,1,1) # w, row, column, rowspan, colspan
+        hbox.addWidget(self.save_svg)
 
         self.svg_interval = QLineEdit()
+        self.svg_interval.setFixedWidth(100)
         self.svg_interval.setValidator(QtGui.QDoubleValidator())
-        self.config_tab_layout.addWidget(self.svg_interval, idx_row,3,1,1) # w, row, column, rowspan, colspan
+        icol += 1
+        # self.config_tab_layout.addWidget(self.svg_interval, idx_row,icol,1,1) # w, row, column, rowspan, colspan
+        hbox.addWidget(self.svg_interval)
 
-        label = QLabel("min")
-        self.config_tab_layout.addWidget(label, idx_row,4,1,2) # w, row, column, rowspan, colspan
+        label = QLabel(self.default_time_units)
+        label.setFixedWidth(100)
+        # self.config_tab_layout.addWidget(label, idx_row,4,1,2) # w, row, column, rowspan, colspan
+        icol += 1
+        # self.config_tab_layout.addWidget(label, idx_row,icol,1,1) # w, row, column, rowspan, colspan
+        hbox.addWidget(label)
 
         #------
-        self.save_full = QCheckBox("Full")
-        self.config_tab_layout.addWidget(self.save_full, idx_row,6,1,1) # w, row, column, rowspan, colspan
+        self.save_full = QCheckBox_custom("Full")
+        self.save_full.setFixedWidth(cbox_width)
+        self.save_full.clicked.connect(self.full_clicked)
+        icol += 2
+        # self.config_tab_layout.addWidget(self.save_full, idx_row,icol,1,1) # w, row, column, rowspan, colspan
+        hbox.addWidget(self.save_full)
 
-        label = QLabel("every")
-        self.config_tab_layout.addWidget(label, idx_row,7,1,1) # w, row, column, rowspan, colspan
+        # label = QLabel("every")
+        # label.setAlignment(QtCore.Qt.AlignRight)
+        # icol += 1
+        # self.config_tab_layout.addWidget(label, idx_row,icol,1,1) # w, row, column, rowspan, colspan
 
         self.full_interval = QLineEdit()
+        self.full_interval.setFixedWidth(100)
         self.full_interval.setValidator(QtGui.QDoubleValidator())
-        if self.nanohub_flag:
-            self.full_interval.setEnabled(False)
-            self.full_interval.setText(self.svg_interval.text())
-        self.config_tab_layout.addWidget(self.full_interval, idx_row,8,1,1) # w, row, column, rowspan, colspan
+        icol += 1
+        # self.config_tab_layout.addWidget(self.full_interval, idx_row,icol,1,1) # w, row, column, rowspan, colspan
+        hbox.addWidget(self.full_interval)
 
-        label = QLabel("min")
-        self.config_tab_layout.addWidget(label, idx_row,9,1,1) # w, row, column, rowspan, colspan
+        label = QLabel(self.default_time_units)
+        icol += 1
+        # self.config_tab_layout.addWidget(label, idx_row,icol,1,1) # w, row, column, rowspan, colspan
+        hbox.addWidget(label)
+
+        hbox.addStretch()
+        vbox.addLayout(hbox)
 
         #============  Cells IC ================================
         label = QLabel("Initial conditions of cells (x,y,z, type)")
@@ -241,39 +363,88 @@ class Config(QWidget):
         label.setStyleSheet("background-color: orange")
         label.setAlignment(QtCore.Qt.AlignCenter)
         idx_row += 1
-        self.config_tab_layout.addWidget(label, idx_row,0,1,20) # w, row, column, rowspan, colspan
+        # self.config_tab_layout.addWidget(label, idx_row,0,1,20) # w, row, column, rowspan, colspan
+        vbox.addWidget(label)
 
-        # self.cells_csv = QCheckBox("cells.csv")
-        self.cells_csv = QCheckBox("enable")
-        idx_row += 1
-        self.config_tab_layout.addWidget(self.cells_csv, idx_row,1,1,1) # w, row, column, rowspan, colspan
+
+        filename_width = 200
+        hbox = QHBoxLayout()
+        self.cells_csv = QCheckBox_custom("enable")
+        self.cells_csv.setFixedWidth(100)
+        self.cells_csv.setEnabled(True)
+        self.cells_csv.clicked.connect(self.cells_csv_clicked)
+        hbox.addWidget(self.cells_csv)
 
         label = QLabel("folder")
-        label_width = 110
-        label_width = 60
-        self.config_tab_layout.addWidget(label, idx_row,2,1,1) # w, row, column, rowspan, colspan
-
-        self.cells_folder = QLineEdit()
-        self.config_tab_layout.addWidget(self.cells_folder, idx_row,3,1,1) # w, row, column, rowspan, colspan
+        label.setAlignment(QtCore.Qt.AlignRight)
+        hbox.addWidget(label)
+        self.csv_folder = QLineEdit()
+        self.csv_folder.setFixedWidth(filename_width)
+        if self.nanohub_flag:
+            self.folder.setEnabled(False)
+        hbox.addWidget(self.csv_folder)
 
         label = QLabel("file")
-        label_width = 110
-        label_width = 60
-        self.config_tab_layout.addWidget(label, idx_row,4,1,1) # w, row, column, rowspan, colspan
+        label.setAlignment(QtCore.Qt.AlignRight)
+        hbox.addWidget(label)
 
-        self.cells_file = QLineEdit()
-        self.config_tab_layout.addWidget(self.cells_file, idx_row,5,1,1) # w, row, column, rowspan, colspan
+        self.csv_file = QLineEdit()
+        self.csv_file.setFixedWidth(filename_width)
+        hbox.addWidget(self.csv_file)
 
         self.import_seeding_button = QPushButton("Import")
         self.import_seeding_button.setFixedWidth(100)
-        self.import_seeding_button.setStyleSheet("background-color: lightgreen")
+        self.import_seeding_button.setStyleSheet("background-color: lightgreen; color: black")
         self.import_seeding_button.clicked.connect(self.import_seeding_cb)
-        self.config_tab_layout.addWidget(self.import_seeding_button, idx_row, 6, 1, 1)
+        hbox.addWidget(self.import_seeding_button)
 
-        self.insert_hacky_blank_lines(self.config_tab_layout)
+        hbox.addStretch()
+
+        vbox.addLayout(hbox)
+
+        #============  Cell behavior flags ================================
+        label = QLabel("Cells' global behaviors")
+        label.setFixedHeight(label_height)
+        label.setStyleSheet("background-color: orange")
+        label.setAlignment(QtCore.Qt.AlignCenter)
+        idx_row += 1
+        # self.config_tab_layout.addWidget(label, idx_row,0,1,20) # w, row, column, rowspan, colspan
+        vbox.addWidget(label)
+        vbox.addLayout(hbox)
+        idx_row += 1
+        icol = 0
+        # self.config_tab_layout.addLayout(hbox, idx_row,icol,1,20) # w, row, column, rowspan, colspan
+
+
+        #----------
+        hbox = QHBoxLayout()
+
+        cbox_width = 200
+        self.virtual_walls = QCheckBox_custom("virtual walls")
+        self.virtual_walls.setFixedWidth(cbox_width)
+        self.virtual_walls.setChecked(True)
+        idx_row += 1
+        # self.config_tab_layout.addWidget(self.virtual_walls, idx_row,1,1,1) # w, row, column, rowspan, colspan
+        hbox.addWidget(self.virtual_walls)
+
+        self.disable_auto_springs = QCheckBox_custom("disable springs")
+        self.disable_auto_springs.setFixedWidth(cbox_width)
+        self.disable_auto_springs.setChecked(True)
+        # self.config_tab_layout.addWidget(self.disable_auto_springs, idx_row,2,1,1) # w, row, column, rowspan, colspan
+        hbox.addWidget(self.disable_auto_springs)
+
+        vbox.addLayout(hbox)
+
+
+        #------
+        # self.insert_hacky_blank_lines(self.config_tab_layout)
+        for idx in range(5):  # rwh: hack solution to align rows
+            blank_line = QLabel("")
+            vbox.addWidget(blank_line)
 
         #==================================================================
-        self.config_params.setLayout(self.config_tab_layout)
+        # self.config_params.setLayout(self.config_tab_layout)
+        self.config_params.setLayout(vbox)
 
         self.scroll.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
         self.scroll.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
@@ -285,6 +456,18 @@ class Config(QWidget):
         self.layout.addWidget(self.scroll)
 
 
+    # def folder_name_cb(self):
+    #     try:  # due to the initial callback
+    #         self.plot_folder.setText(self.folder.text())
+    #     except:
+    #         pass
+
+    # def plot_folder_name_cb(self):   # allow plotting data from *any* output dir
+    #     try:  # due to the initial callback
+    #         self.vis_tab.output_dir = self.plot_folder.text()
+    #     except:
+    #         pass
+
         #--------------------------------------------------------
     def insert_hacky_blank_lines(self, glayout):
         idr = 4
@@ -293,8 +476,32 @@ class Config(QWidget):
             idr += 1
             glayout.addWidget(blank_line, idr,0, 1,1) # w, row, column, rowspan, colspan
 
-    def fill_gui(self):
+    def svg_clicked(self, bval):
+        # print("svg_clicked: bval=",bval)
+        self.svg_interval.setEnabled(bval)
+        if bval:
+            self.svg_interval.setStyleSheet("background-color: white; color: black")
+        else:
+            self.svg_interval.setStyleSheet("background-color: lightgray; color: black")
 
+    def full_clicked(self, bval):
+        self.full_interval.setEnabled(bval)
+        if bval:
+            self.full_interval.setStyleSheet("background-color: white; color: black")
+        else:
+            self.full_interval.setStyleSheet("background-color: lightgray; color: black")
+
+    def cells_csv_clicked(self, bval):
+        self.csv_folder.setEnabled(bval)
+        self.csv_file.setEnabled(bval)
+        if bval:
+            self.csv_folder.setStyleSheet("background-color: white; color: black")
+            self.csv_file.setStyleSheet("background-color: white; color: black")
+        else:
+            self.csv_folder.setStyleSheet("background-color: lightgray; color: black")
+            self.csv_file.setStyleSheet("background-color: lightgray; color: black")
+
+    def fill_gui(self):
         self.xmin.setText(self.xml_root.find(".//x_min").text)
         self.xmax.setText(self.xml_root.find(".//x_max").text)
         self.xdel.setText(self.xml_root.find(".//dx").text)
@@ -307,54 +514,61 @@ class Config(QWidget):
         self.zmax.setText(self.xml_root.find(".//z_max").text)
         self.zdel.setText(self.xml_root.find(".//dz").text)
 
-        if self.xml_root.find(".//virtual_wall_at_domain_edge").text.lower() == "true":
-            self.virtual_walls.setChecked(True)
+        if self.xml_root.find(".//virtual_wall_at_domain_edge") is not None:
+            # print("\n\n---------virtual_wall text.lower()=",self.xml_root.find(".//virtual_wall_at_domain_edge").text.lower())
+            check = self.xml_root.find(".//virtual_wall_at_domain_edge").text.lower()
+            # print("---------virtual_wall check=",check)
+            # print("---------type(check)=",type(check))
+            # print("---------check.find('true')=",check.find('true'))
+            if self.xml_root.find(".//virtual_wall_at_domain_edge").text.lower() == "true":
+                # print("--------- doing self.virtual_walls.setChecked(True)")
+                self.virtual_walls.setChecked(True)
+            else:
+                self.virtual_walls.setChecked(False)
         else:
-            self.virtual_walls.setChecked(False)
+            print("\n\n---------virtual_wall_at_domain_edge is None !!!!!!!!!!!!1")
+
+        self.disable_auto_springs.setChecked(False)
+        if self.xml_root.find(".//disable_automated_spring_adhesions") is not None:
+            if self.xml_root.find(".//disable_automated_spring_adhesions").text.lower() == "true":
+                self.disable_auto_springs.setChecked(True)
         
         self.max_time.setText(self.xml_root.find(".//max_time").text)
+        self.diffusion_dt.setText(self.xml_root.find(".//dt_diffusion").text)
+        self.mechanics_dt.setText(self.xml_root.find(".//dt_mechanics").text)
+        self.phenotype_dt.setText(self.xml_root.find(".//dt_phenotype").text)
         
         self.num_threads.setText(self.xml_root.find(".//omp_num_threads").text)
 
         self.folder.setText(self.xml_root.find(".//folder").text)
+        # if self.studio_flag:
+        #     self.plot_folder.setText(self.xml_root.find(".//folder").text)
         
         self.svg_interval.setText(self.xml_root.find(".//SVG//interval").text)
         # NOTE: do this *after* filling the mcds_interval, directly above, due to the callback/constraints on them??
+        bval = False
         if self.xml_root.find(".//SVG//enable").text.lower() == 'true':
-            self.save_svg.setChecked(True)
-        else:
-            self.save_svg.setChecked(False)
+            bval = True
+        self.save_svg.setChecked(bval)
+        self.svg_clicked(bval)
 
         self.full_interval.setText(self.xml_root.find(".//full_data//interval").text)
+        bval = False
         if self.xml_root.find(".//full_data//enable").text.lower() == 'true':
-            self.save_full.setChecked(True)
-        else:
-            self.save_full.setChecked(False)
+            bval = True
+        self.save_full.setChecked(bval)
+        self.full_clicked(bval)
 
         uep = self.xml_root.find(".//initial_conditions//cell_positions")
         if uep == None:  # not present
             return
+        self.csv_folder.setText(self.xml_root.find(".//initial_conditions//cell_positions//folder").text)
+        self.csv_file.setText(self.xml_root.find(".//initial_conditions//cell_positions//filename").text)
+        bval = False
         if uep.attrib['enabled'].lower() == 'true':
-            self.cells_csv.setChecked(True)
-        else:
-            self.cells_csv.setChecked(False)
-
-        # stop the insanity
-        print("\n\n----------\nconfig_tab.py:  file_gui(): setting cells folder and file")
-        uep = self.xml_root.find(".//initial_conditions//cell_positions//folder")
-        if uep is not None:
-            print("config_tab.py:  file_gui(): setting cells folder")
-            self.cells_folder.setText(uep.text)
-        else:
-            self.cells_folder.setText(".")
-
-        uep = self.xml_root.find(".//initial_conditions//cell_positions//filename")
-        if uep is not None:
-            print("config_tab.py:  file_gui(): setting cells file")
-            self.cells_file.setText(uep.text)
-        else:
-            self.cells_file.setText("cells.csv")
-        # sys.exit()
+            bval = True
+        self.cells_csv.setChecked(bval)
+        self.cells_csv_clicked(bval)
 
 
 
@@ -365,6 +579,7 @@ class Config(QWidget):
         indent8 = '\n        '
         indent10 = '\n          '
 
+        # print(f"\nconfig_tab: fill_xml: =self.xml_root = {self.xml_root}" )
         # print("config_tab: fill_xml: xmin=",self.xmin.text() )
         self.xml_root.find(".//x_min").text = self.xmin.text()
         self.xml_root.find(".//x_max").text = self.xmax.text()
@@ -378,18 +593,59 @@ class Config(QWidget):
         self.xml_root.find(".//z_max").text = self.zmax.text()
         self.xml_root.find(".//dz").text = self.zdel.text()
 
+        # is this model 2D or 3D?
+        zmax = float(self.zmax.text())
+        zmin = float(self.zmin.text())
+        zdel = float(self.zdel.text())
+        if (zmax-zmin) > zdel:
+            self.xml_root.find(".//domain//use_2D").text = 'false'
+        else:
+            self.xml_root.find(".//domain//use_2D").text = 'true'
+        
+        # may want to check for (max-min) being an integer multiple of delta spacings:
+            # msg = QMessageBox()
+            # msg.setIcon(QMessageBox.Critical)
+            # msg.setText("Warning")
+            # msg.setInformativeText('The output intervals for SVG and full (in Config Basics) do not match.')
+            # msg.setWindowTitle("Warning")
+            # msg.exec_()
+
+
         # if not self.xml_root.find(".//virtual_wall_at_domain_edge"):
         # opts = self.xml_root.find(".//options")
         # if not opts:
         #     print("------ Missing <options> in config .xml.  HALT.")
         #     sys.exit(1)
 
+                # subelm = ET.SubElement(elm, 'physical_parameter_set')
+                # subelm.text = indent10
+                # subelm.tail = indent8
 
-        # rwh: I ended up *requiring* the original .xml (which is copied) have the <virtual_wall_at_domain_edge...> element.
+                # subelm2 = ET.SubElement(subelm, "diffusion_coefficient",{"units":"micron^2/min"})
+                # subelm2.text = self.param_d[substrate]["diffusion_coef"]
+                # subelm2.tail = indent10
+
+        # do not *require* the input .xml to have these tags; insert them if missing
         bval = "false"
         if self.virtual_walls.isChecked():
             bval = "true"
-        self.xml_root.find(".//virtual_wall_at_domain_edge").text = bval
+        if self.xml_root.find(".//virtual_wall_at_domain_edge") is not None:
+            self.xml_root.find(".//virtual_wall_at_domain_edge").text = bval
+        else:  # missing in original; insert it (happens at write)
+            uep = self.xml_root.find('.//options')
+            subelm = ET.SubElement(uep, "virtual_wall_at_domain_edge")
+            subelm.text = bval
+
+        bval = "false"
+        if self.disable_auto_springs.isChecked():
+            bval = "true"
+        if self.xml_root.find(".//disable_automated_spring_adhesions") is not None:
+            self.xml_root.find(".//disable_automated_spring_adhesions").text = bval
+        else:  # missing in original; insert it (happens at write)
+            uep = self.xml_root.find('.//options')
+            subelm = ET.SubElement(uep, "disable_automated_spring_adhesions")
+            subelm.text = bval
+
 
         # rwh: Not sure why I couldn't get this to work, i.e., to *insert* the element (just one time) if it didn't exist.
         # vwall = self.xml_root.find(".//virtual_wall_at_domain_edge")
@@ -426,8 +682,13 @@ class Config(QWidget):
         #     opts.insert(0,subelm)
 
         self.xml_root.find(".//max_time").text = self.max_time.text()
+        # print(f'------- config_tab.py: fill_xml(): update max_time = {self.max_time.text()}')
+        self.xml_root.find(".//dt_diffusion").text = self.diffusion_dt.text()
+        self.xml_root.find(".//dt_mechanics").text = self.mechanics_dt.text()
+        self.xml_root.find(".//dt_phenotype").text = self.phenotype_dt.text()
         self.xml_root.find(".//omp_num_threads").text = self.num_threads.text()
         self.xml_root.find(".//folder").text = self.folder.text()
+        # print(f'------- config_tab.py: fill_xml(): setting folder = {self.folder.text()}')
 
         if self.save_svg.isChecked():
             self.xml_root.find(".//SVG//enable").text = 'true'
@@ -442,16 +703,23 @@ class Config(QWidget):
         self.xml_root.find(".//full_data//interval").text = self.full_interval.text()
         # self.xml_root.find(".//full_data//interval").text = self.svg_interval.text()
 
+        if self.xml_root.find(".//initial_conditions") is None: 
+            print("\n ===  Warning: Original XML is missing <initial_conditions> block.")
+            print("        Will not insert into saved file.\n")
+            return
+
         if self.cells_csv.isChecked():
             self.xml_root.find(".//initial_conditions//cell_positions").attrib['enabled'] = 'true'
         else:
             self.xml_root.find(".//initial_conditions//cell_positions").attrib['enabled'] = 'false'
 
-        # rwh: TODO: resolve the location of the folder (and filename) for the cells .csv
-        # stop the insanity!
-        # self.xml_root.find(".//initial_conditions//cell_positions/folder").text = '..'
-        self.xml_root.find(".//initial_conditions//cell_positions/folder").text = self.cells_folder.text()
-        self.xml_root.find(".//initial_conditions//cell_positions/filename").text = self.cells_file.text()
+
+        # self.xml_root.find(".//initial_conditions//cell_positions/folder").text = './data'
+        self.xml_root.find(".//initial_conditions//cell_positions/folder").text = self.csv_folder.text()
+        # print(f'------- config_tab.py: fill_xml(): setting csv folder = {self.csv_folder.text()}')
+
+        self.xml_root.find(".//initial_conditions//cell_positions/filename").text = self.csv_file.text()
+        # print(f'------- config_tab.py: fill_xml(): setting csv filename = {self.csv_file.text()}')
         # if self.csv_rb1.isChecked():
         #     self.xml_root.find(".//initial_conditions//cell_positions/filename").text = 'all_cells.csv'
         # else:
@@ -478,7 +746,7 @@ class Config(QWidget):
         # xml_root.find(".//full_data").find(".//enable").text = str(self.toggle_mcds.value)
         # xml_root.find(".//full_data").find(".//interval").text = str(self.mcds_interval.value)
 
-    #-----------------------------------------------------------
+            #-----------------------------------------------------------
     def import_seeding_cb(self):
         # filePath = QFileDialog.getOpenFileName(self,'',".",'*.xml')
         filePath = QFileDialog.getOpenFileName(self,'',".")
@@ -495,8 +763,8 @@ class Config(QWidget):
             # logging.debug(f'     filePath is valid')
             print("len(full_path_rules_name) = ", len(full_path_rules_name) )
             # logging.debug(f'     len(full_path_rules_name) = {len(full_path_rules_name)}' )
-            self.cells_folder.setText(dirname)
-            self.cells_file.setText(basename)
+            self.csv_folder.setText(dirname)
+            self.csv_file.setText(basename)
             # fname = os.path.basename(full_path_rules_name)
             # self.current_xml_file = full_path_rules_name
 

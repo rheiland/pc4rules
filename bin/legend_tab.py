@@ -1,3 +1,10 @@
+"""
+Authors:
+Randy Heiland (heiland@iu.edu)
+Adam Morrow, Grant Waldrow, Drew Willis, Kim Crevecoeur
+Dr. Paul Macklin (macklinp@iu.edu)
+"""
+
 import os
 import time
 from pathlib import Path
@@ -29,9 +36,12 @@ class Legend(QWidget):
         super().__init__()
 
         # self.doc_absolute_path = doc_absolute_path
-        self.output_dir = None
 
         self.process = None
+        self.output_dir = '.'   # set in pmb.py
+        self.current_dir = '.'   # reset in pmb.py
+        # self.pmb_data_dir = ''   # reset in pmb.py
+        self.pmb_config_dir = ''   # reset in pmb.py
         
         #-------------------------------------------
         self.scroll = QScrollArea()  # might contain centralWidget
@@ -69,25 +79,35 @@ class Legend(QWidget):
         self.layout = QVBoxLayout(self)
         self.layout.addWidget(self.scroll)
 
-    def reload_legend(self):
-        # stop the insanity!
-        # print('---------reload_legend(): cwd = self.output_dir = ',os.getcwd())
-        # self.output_dir = os.getcwd()
-        print('reload_legend():   self.output_dir = ',self.output_dir)   # set in studio.py
+    def clear_legend(self):
+        legend_file = os.path.join(self.pmb_config_dir, 'empty_legend.svg')
+        self.svgView.load(legend_file)
 
-        for idx in range(6):
+    def reload_legend(self):
+        # print('reload_legend(): cwd = self.output_dir = ',os.getcwd())
+        # self.output_dir = os.getcwd()
+        print('reload_legend(): self.output_dir = ',self.output_dir)
+
+        for idx in range(4):
             print("waiting for creation of legend.svg ...",idx)
-            # stop the insanity!
-            fname = os.path.join(self.output_dir,"legend.svg")
             # path = Path("legend.svg")
-            path = Path(fname)
+            path = Path(self.output_dir,"legend.svg")
+            # path = Path(self.current_dir,self.output_dir,"legend.svg")
+            print("path = ",path)
             if path.is_file():
+            # try:
                 # self.svgView.load("legend.svg")
-                self.svgView.load(fname)
+                full_fname = os.path.join(self.output_dir, "legend.svg")
+                # full_fname = os.path.join(self.current_dir,self.output_dir, "legend.svg")
+                print("legend_tab.py: full_fname = ",full_fname)
+                self.svgView.load(full_fname)
                 break
+            # except:
+            #     path = Path(self.current_dir,self.output_dir,"legend.svg")
+            #     time.sleep(1)
             else:
-                # path = Path("legend.svg")
-                path = Path(fname)
+                path = Path(self.output_dir,"legend.svg")
+                # path = Path(self.current_dir,self.output_dir,"legend.svg")
                 time.sleep(1)
         # try:
         #     self.svg.load("legend.svg")

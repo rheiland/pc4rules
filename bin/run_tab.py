@@ -1,23 +1,24 @@
 """
+run_tab.py - Run tab: execute a simulation and see terminal text output
+
 Authors:
 Randy Heiland (heiland@iu.edu)
 Dr. Paul Macklin (macklinp@iu.edu)
-- also rf. Credits.md
+Rf. Credits.md
+
 """
 
 import sys
 import os
 import time
 import logging
-from pretty_print_xml import pretty_print
 from pathlib import Path
+from pretty_print_xml import pretty_print
 from PyQt5 import QtCore, QtGui
-# from PyQt5.QtWidgets import *
 from PyQt5.QtWidgets import QFrame,QApplication,QWidget,QTabWidget,QFormLayout,QLineEdit, QHBoxLayout,QVBoxLayout,QRadioButton,QLabel,QCheckBox,QComboBox,QScrollArea, QPushButton,QPlainTextEdit
 from PyQt5.QtWidgets import QMessageBox
-
 from PyQt5.QtCore import QProcess
-
+from cell_def_tab import CellDefException
 class QHLine(QFrame):
     def __init__(self):
         super(QHLine, self).__init__()
@@ -25,11 +26,12 @@ class QHLine(QFrame):
         self.setFrameShadow(QFrame.Sunken)
 
 class RunModel(QWidget):
-    def __init__(self, nanohub_flag, tab_widget, rules_flag, download_menu):
+    def __init__(self, nanohub_flag, tab_widget, celldef_tab, rules_flag, download_menu):
         super().__init__()
 
         self.nanohub_flag = nanohub_flag
         self.tab_widget = tab_widget
+        self.celldef_tab = celldef_tab
         self.rules_flag = rules_flag
         self.download_menu = download_menu
 
@@ -37,18 +39,19 @@ class RunModel(QWidget):
         # used with nanoHUB app
         # self.nanohub = True
         # following set in pmb.py
-        self.current_dir = '.'   
+        self.current_dir = ''   
         self.config_file = None
-        self.tree = None
 
         # these get set in pmb.py
         self.config_tab = None
         self.microenv_tab = None
         self.celldef_tab = None
         self.user_params_tab = None
-        self.rules_tab = None   # set in studio.py
+        self.rules_tab = None
         self.vis_tab = None
-        self.legend_tab = None
+        # self.legend_tab = None
+
+        self.tree = None
 
         self.output_dir = 'output'
 
@@ -73,12 +76,12 @@ class RunModel(QWidget):
         hbox = QHBoxLayout()
 
         self.run_button = QPushButton("Run Simulation")
-        self.run_button.setStyleSheet("background-color: lightgreen")
+        self.run_button.setStyleSheet("QPushButton {background-color: lightgreen; color: black;}")
         hbox.addWidget(self.run_button)
         self.run_button.clicked.connect(self.run_model_cb)
 
         self.cancel_button = QPushButton("Cancel")
-        self.cancel_button.setStyleSheet("background-color: red")
+        self.cancel_button.setStyleSheet("QPushButton {background-color: tomato; color: black;}")
         # self.cancel_button.setStyleSheet("background-color: rgb(250,50,50)")
         hbox.addWidget(self.cancel_button)
         self.cancel_button.clicked.connect(self.cancel_model_cb)
@@ -90,21 +93,18 @@ class RunModel(QWidget):
         hbox.addWidget(QLabel("Exec:"))
         self.exec_name = QLineEdit()
         if self.nanohub_flag:
-            self.exec_name.setText('rules_model')
-            # self.exec_name.setEnabled(False)
+            self.exec_name.setText('myproj')
+            self.exec_name.setEnabled(False)
         else:
             # self.exec_name.setText('../myproj')
-            self.exec_name.setText('rules_model')
+            self.exec_name.setText('template')
         hbox.addWidget(self.exec_name)
 
         hbox.addWidget(QLabel("Config:"))
         self.config_xml_name = QLineEdit()
         # self.config_xml_name.setText('mymodel.xml')
         # self.config_xml_name.setText('copy_PhysiCell_settings.xml')
-        if self.nanohub_flag:
-            self.config_xml_name.setText('config.xml')
-        else:
-            self.config_xml_name.setText('data/tumor.xml')  # default model
+        self.config_xml_name.setText('config.xml')
         hbox.addWidget(self.config_xml_name)
 
         # self.vbox.addStretch()
@@ -129,17 +129,11 @@ class RunModel(QWidget):
         self.layout.addWidget(self.scroll)
 
 #------------------------------
+    # replicate what we do in the "save" function in the main module
     def update_xml_from_gui(self):
-        self.xml_root = self.tree.getroot()
-        # logging.debug(f'\n ========================== run_tab.py: update_xml_from_gui(): self.xml_root = {self.xml_root}')
-        print(f'\n ========================== run_tab.py: update_xml_from_gui(): self.xml_root = {self.xml_root}')
-        self.config_tab.xml_root = self.xml_root
-        self.microenv_tab.xml_root = self.xml_root
-        self.celldef_tab.xml_root = self.xml_root
-        self.user_params_tab.xml_root = self.xml_root
-        # if self.rules_flag:
-            # self.rules_tab.xml_root = self.xml_root
-        # sys.exit(1)
+        if not self.user_params_tab.validate_utable():
+            self.enable_run(True)
+            return False
 
         self.config_tab.fill_xml()
         self.microenv_tab.fill_xml()
@@ -147,6 +141,8 @@ class RunModel(QWidget):
         self.user_params_tab.fill_xml()
         if self.rules_flag:
             self.rules_tab.fill_xml()
+        
+        return True
 
         # self.vis_tab.circle_radius = ET.parse(self.xml_root)
         # tree = ET.parse(xml_file)
@@ -158,202 +154,142 @@ class RunModel(QWidget):
     def message(self, s):
         self.text.appendPlainText(s)
 
-
     def run_model_cb(self):
         logging.debug(f'===========  run_model_cb():  ============')
+        self.celldef_tab.check_valid_cell_defs()
 
-        if float(self.config_tab.svg_interval.text()) != float(self.config_tab.full_interval.text()):
-            msg = QMessageBox()
-            msg.setIcon(QMessageBox.Critical)
-            msg.setText("Warning")
-            msg.setInformativeText('The output intervals for SVG and full (in Config Basics) do not match.')
-            msg.setWindowTitle("Warning")
-            msg.exec_()
-
-        # stop the insanity
-        self.output_dir = self.config_tab.folder.text()
-        self.legend_tab.output_dir = self.output_dir 
-        self.vis_tab.output_dir = self.output_dir 
-        print("run_model_cb(): update self.output_dir (in legend_tab and vis_tab too)= ",self.output_dir)
+        if self.config_tab.save_svg.isChecked() and self.config_tab.save_full.isChecked():
+            if float(self.config_tab.svg_interval.text()) != float(self.config_tab.full_interval.text()):
+                msg = QMessageBox()
+                msg.setIcon(QMessageBox.Critical)
+                msg.setText("Warning")
+                msg.setInformativeText('The output intervals for SVG and full (in Config Basics) do not match.')
+                msg.setWindowTitle("Warning")
+                msg.exec_()
 
         self.run_button.setEnabled(False)
 
-        # if True: # copy normal workflow of an app, strange as it is
-        if self.nanohub_flag:
-            # make sure we are where we started (app's root dir)
-            os.chdir(self.homedir)
-            print("run_tab.py:  chdir to homedir= ",self.homedir)
-
-            # remove any previous data
-            # NOTE: this dir name needs to match the <folder>  in /data/<config_file.xml>
-            os.system('rm -rf tmpdir*')
-            time.sleep(1)
-            if os.path.isdir('tmpdir'):
-                # something on NFS causing issues...
-                tname = tempfile.mkdtemp(suffix='.bak', prefix='tmpdir_', dir='.')
-                shutil.move('tmpdir', tname)
-            os.makedirs('tmpdir')
-
-            # write the default config file to tmpdir
-            # new_config_file = "tmpdir/config.xml"  # use Path; work on Windows?
-            tdir = os.path.abspath('tmpdir')
-            new_config_file = Path(tdir,"config.xml")
-            print("run_tab.py:  (for nanoHUB *only*) new_config_file = ",new_config_file )  # insanity!
-
-            # write_config_file(new_config_file)  
-            # update the .xml config file
-            self.update_xml_from_gui()
-
-            # self.config_tab.fill_xml()
-            # self.microenv_tab.fill_xml()
-            # self.celldef_tab.fill_xml()
-            # self.user_params_tab.fill_xml()
-            print("\n\n ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-            print("run_tab.py: (nanoHUB)----> writing modified model to ",new_config_file)
-            self.tree.write(new_config_file)  # saves modified XML to tmpdir/config.xml 
-
-            # Operate from tmpdir. XML: <folder>,</folder>; temporary output goes here.  May be copied to cache later.
-            # tdir = os.path.abspath('tmpdir')
-            # print("run_tab.py: chdir to ",tdir)
-            # if self.nanohub_flag:
-                # os.chdir(tdir)   # run exec from tmpdir on nanoHUB (but from root on desktop!)
+        try:
+            # if self.nanohub_flag: # copy normal workflow of an app, strange as it is
+            if True: # copy normal workflow of an app, strange as it is
+                # make sure we are where we started (app's root dir)
+                # logging.debug(f'\n------>>>> doing os.chdir to {self.current_dir}')
+                os.chdir(self.current_dir)
+                # remove any previous data
+                # NOTE: this dir name needs to match the <folder>  in /data/<config_file.xml>
+                if self.nanohub_flag:
+                    os.system('rm -rf tmpdir*')
+                    time.sleep(1)
+                    if os.path.isdir('tmpdir'):
+                        # something on NFS causing issues...
+                        tname = tempfile.mkdtemp(suffix='.bak', prefix='tmpdir_', dir='.')
+                        shutil.move('tmpdir', tname)
+                    os.makedirs('tmpdir')
+                    tdir = os.path.abspath('tmpdir')
+                else:
+                    self.output_dir = self.config_tab.folder.text()
+                    os.system('rm -rf ' + self.output_dir)
+                    logging.debug(f'run_tab.py:  doing: mkdir {self.output_dir}')
+                    os.makedirs(self.output_dir)  # do 'mkdir output_dir'
+                    time.sleep(1)
+                    tdir = os.path.abspath(self.output_dir)
 
 
-            # stop the insanity!
-            # os.chdir(tdir)   # run exec from output dir (e.g., /tmpdir on nanoHUB)
-            # print("run_tab.py:  chdir to tdir= ",tdir)
+                #   Only req'd for nanoHUB??
+                # print("run_tab.py: ----> here 3")
+                # new_config_file = Path(tdir,"config.xml")
+                # self.celldef_tab.config_path = new_config_file
+                # print("run_tab.py: ----> here 4")
 
-        #------------------
-        else:  # not nanoHUB
-            # make sure we are where we started (app's root dir)
-            os.chdir(self.homedir)
-            print("run_model_cb():  chdir to homedir= ",self.homedir)
+                if not self.update_xml_from_gui():
+                    # self.run_button.setEnabled(True)
+                    self.enable_run(True)
+                    return
 
-            # remove any previous data
-            # NOTE: this dir name needs to match the <folder>  in /data/<config_file.xml>
-            rm_cmd = "rm -rf " + self.output_dir + "*"
-            print("run_model_cb():  rm_cmd=",rm_cmd)
-            os.system(rm_cmd)
-            time.sleep(1)
-            if os.path.isdir(self.output_dir):
-                # something on NFS causing issues...
-                tname = tempfile.mkdtemp(suffix='.bak', prefix='tmpdir_', dir='.')
-                shutil.move(self.output_dir, tname)
-            os.makedirs(self.output_dir)
+                # logging.debug(f'run_tab.py: ----> writing modified model to {self.config_file}')
+                # print("run_tab.py: ----> new_config_file = ",new_config_file)
+                # print("run_tab.py: ----> self.config_file = ",self.config_file)
+                self.tree.write(self.config_file)
+                # print("run_tab.py: ----> here 5")
+                pretty_print(self.config_file, self.config_file)
+                # self.tree.write(new_config_file)  # saves modified XML to <output_dir>/config.xml 
+                # sys.exit(1)
 
-            # write the config file to the output dir
-            # new_config_file = "tmpdir/config.xml"  # use Path; work on Windows?
-            tdir = os.path.abspath(self.output_dir)
-            new_config_file = Path(tdir,"config.xml")
-            print("run_model_cb():  (local) new_config_file = ",new_config_file )  # insanity!
-
-            # write_config_file(new_config_file)  
-            # update the .xml config file
-            self.update_xml_from_gui()
-
-            # self.config_tab.fill_xml()
-            # self.microenv_tab.fill_xml()
-            # self.celldef_tab.fill_xml()
-            # self.user_params_tab.fill_xml()
-            print("\n\n ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-            print("run_tab.py: (not nanoHUB) ----> writing modified model to ",self.config_file)
-            self.tree.write(self.config_file)
-            pretty_print(self.config_file, self.config_file)
-
-        #-----------------------------------------
-        auto_load_params = True
-        # if auto_load_params:
-
-        if self.vis_tab:
-            # self.vis_tab.reset_axes()
-            self.vis_tab.reset_model_flag = True
-            self.vis_tab.reset_plot_range()
-            self.vis_tab.init_plot_range(self.config_tab) # heaven help the person who needs to understand this
-
-        # for f in Path('./output').glob('*.*'):
-        #     try:
-        #         f.unlink()
-        #     except OSError as e:
-        #         print("Error: %s : %s" % (f, e.strerror))
-        # print("  rm -rf tmpdir/*")
-        # os.system('rm -rf tmpdir/*')
-
-        # if os.path.isdir('tmpdir'):
-        #     # something on NFS causing issues...
-        #     tname = tempfile.mkdtemp(suffix='.bak', prefix='output_', dir='.')
-        #     shutil.move('output', tname)
-        # os.makedirs('output')
-
-        # update axes ranges on Plots
+                # Operate from tmpdir. XML: <folder>,</folder>; temporary output goes here.  May be copied to cache later.
+                if self.nanohub_flag:
+                    tdir = os.path.abspath('tmpdir')
+                    os.chdir(tdir)   # run exec from here on nanoHUB
+                # sub.update(tdir)
+                # subprocess.Popen(["../bin/myproj", "config.xml"])
 
 
-        if self.p is None:  # No process running.
-            # self.vis_tab.setEnabled(True)
-            # self.pStudio.enablePlotTab(True)
-            # self.pStudio.enableLegendTab(True)
-            self.tab_widget.setTabEnabled(6, True)   # enable (allow to be selected) the Plot tab
-            self.tab_widget.setTabEnabled(7, True)   # enable Legend tab
-            self.message("Executing process")
-            self.p = QProcess()  # Keep a reference to the QProcess (e.g. on self) while it's running.
-            self.p.readyReadStandardOutput.connect(self.handle_stdout)
-            self.p.readyReadStandardError.connect(self.handle_stderr)
-            self.p.stateChanged.connect(self.handle_state)
-            self.p.finished.connect(self.process_finished)  # Clean up once complete.
-            # self.p.start("mymodel", ['biobots.xml'])
-            exec_str = self.exec_name.text()
-            xml_str = self.config_xml_name.text()
-            if self.nanohub_flag:
-                self.p.start("submit",["--local",exec_str,xml_str])
+            auto_load_params = True
+            # if auto_load_params:
+
+            if self.vis_tab:
+                self.vis_tab.reset_domain_box()
+                # self.vis_tab.reset_axes()
+                self.vis_tab.reset_model_flag = True
+                self.vis_tab.reset_plot_range()
+                self.vis_tab.init_plot_range(self.config_tab) # heaven help the person who needs to understand this
+                self.vis_tab.output_folder.setText(self.output_dir) 
+
+                self.vis_tab.output_dir = self.output_dir
+                # self.legend_tab.output_dir = self.output_dir
+                self.vis_tab.reset_model()
+                self.vis_tab.update_plots()
+
+                if self.celldef_tab.intracellular_type_dropdown.currentText().find("boolean") >= 0:
+                    print("\n--- run_tab:  calling vis_tab.build_physiboss_info()")
+                    self.vis_tab.build_physiboss_info()
+                else:
+                    print("\n--- run_tab:  calling vis_tab.disable_physiboss_info()")
+                    self.vis_tab.disable_physiboss_info()
+                    # self.vis_tab.physiboss_vis_hide
+
+
+            if self.p is None:  # No process running.
+                self.enable_run(False)
+                self.tab_widget.setTabEnabled(6, True)   # enable (allow to be selected) the Plot tab
+                # self.tab_widget.setTabEnabled(7, True)   # enable Legend tab
+                self.message("Executing process")
+                self.p = QProcess()  # Keep a reference to the QProcess (e.g. on self) while it's running.
+                self.p.readyReadStandardOutput.connect(self.handle_stdout)
+                self.p.readyReadStandardError.connect(self.handle_stderr)
+                self.p.stateChanged.connect(self.handle_state)
+                self.p.finished.connect(self.process_finished)  # Clean up once complete.
+                # self.p.start("mymodel", ['biobots.xml'])
+                exec_str = self.exec_name.text()
+                xml_str = self.config_xml_name.text()
+                print("\n--- run_tab:  xml_str before run is ",xml_str)
+                if self.nanohub_flag:
+                    self.p.start("submit",["--local",exec_str,xml_str])
+                else:
+                    # logging.debug(f'\nrun_tab.py: running: {exec_str}, {xml_str}')
+                    self.p.start(exec_str, [xml_str])
+
+                    # print("\n\nrun_tab.py: running: ",exec_str," output/config.xml")
+                    # self.p.start(exec_str, ["output/config.xml"])
+                # self.p = None  # No, don't do this
+
+                # self.legend_tab.reload_legend()  # new, not sure about timing - creation vs. display
+
             else:
-                logging.debug(f'\nrun_tab.py: running: {exec_str}, {xml_str}')
-                # exec_str_rel = os.path.join('..',exec_str)
+                # logging.debug(f'self.p is not None???')
+                print(f'self.p is not None???')
+                
+        except CellDefException as e:
+            self.show_error_message(str(e) + " : run_cb(): Error: Please finish the definition before running.")
+            self.run_button.setEnabled(True)
 
-                # stop the insanity
-                # exec_str_rel = os.path.join('..',exec_str)
-                # xml_str_abs = os.path.abspath(os.path.join('..',xml_str))
-                exec_str_rel = exec_str
-                xml_str_abs = os.path.abspath(xml_str)
-                # print(f'\nrun_tab.py: running: {exec_str}, {xml_str}')
-
-                # NB: assuming Rules are enabled!
-                rules_folder_name = self.xml_root.find(".//cell_definitions//cell_rules//folder").text
-                print(f'\nrun_tab.py: rules folder= {rules_folder_name}')
-                rules_file_name = self.xml_root.find(".//cell_definitions//cell_rules//filename").text
-                print(f'\nrun_tab.py: rules file= {rules_file_name}')
-                # self.pmb_root_dir = os.path.realpath(os.path.join(os.path.dirname(__file__), '..'))
-                # full_rules_filename = os.path.realpath(os.path.join(rules_folder_name, rules_file_name))
-                full_rules_filename = os.path.realpath(os.path.join(self.homedir,rules_folder_name, rules_file_name))
-                print(f'\nrun_tab.py: full_rules_filename= {full_rules_filename}')
-
-                if not os.path.isfile(full_rules_filename):
-                    msgBox = QMessageBox()
-                    msgBox.setIcon(QMessageBox.Information)
-                    msg = "From " + os.getcwd() + " invalid rules " + full_rules_filename
-                    print(msg)
-                    msgBox.setText(msg)
-                    msgBox.setStandardButtons(QMessageBox.Ok)
-                    msgBox.exec()
-                    # return
-
-                print(f'\nrun_tab.py: running: {exec_str_rel}, {xml_str_abs}')
-                # self.p.start(exec_str, [xml_str])
-                self.p.start(exec_str_rel, [xml_str_abs])
-
-                # print("\n\nrun_tab.py: running: ",exec_str," output/config.xml")
-                # self.p.start(exec_str, ["output/config.xml"])
-            # self.p = None  # No, don't do this
-
-            self.legend_tab.reload_legend()  # new, not sure about timing - creation vs. display
-        else:
-            logging.debug(f'self.p is not None???')
-            print(f'self.p is not None???')
 
     def cancel_model_cb(self):
-        logging.debug(f'===========  cancel_model_cb():  ============')
+        # logging.debug(f'===========  cancel_model_cb():  ============')
         if self.p:  # process running.
             self.p.kill()
             # self.p.terminate()
-            self.run_button.setEnabled(True)
+            # self.run_button.setEnabled(True)
+            self.enable_run(True)
 
     def handle_stderr(self):
         data = self.p.readAllStandardError()
@@ -377,9 +313,27 @@ class RunModel(QWidget):
 
     def process_finished(self):
         self.message("Process finished.")
+        self.enable_run(True)
         # print("-- process finished.")
         self.vis_tab.first_plot_cb("foo")
         if self.nanohub_flag:
             self.download_menu.setEnabled(True)
         self.p = None
         self.run_button.setEnabled(True)
+        
+    def show_error_message(self, message):
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Critical)
+        msg.setText(message)
+        msg.setWindowTitle("Error")
+        msg.setFixedWidth(500)
+        msg.exec_()
+
+    def enable_run(self, flag):
+        self.run_button.setEnabled(flag)
+        if flag:
+            self.run_button.setText("Run simulation")
+            self.run_button.setStyleSheet("QPushButton {background-color: lightgreen; color: black;}")
+        else:
+            self.run_button.setText("...")
+            self.run_button.setStyleSheet("QPushButton {background-color: yellow; color: black;}")
