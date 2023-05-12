@@ -23,11 +23,11 @@
     </overall>
 
     <parallel>
-        <omp_num_threads>6</omp_num_threads>
+        <omp_num_threads>4</omp_num_threads>
     </parallel>
 
     <save>
-        <folder>output</folder>
+        <folder>tmpdir</folder>
         <full_data>
             <interval units="min">60</interval>
             <enable>true</enable>
@@ -274,7 +274,7 @@
                     <model code="101" name="necrosis">
                         <death_rate units="1/min">0.0</death_rate>
                         <phase_transition_rates units="1/min">
-                            <rate start_index="0" end_index="1" fixed_duration="false">9e9</rate>
+                            <rate start_index="0" end_index="1" fixed_duration="false">9000000000.0</rate>
                             <rate start_index="1" end_index="2" fixed_duration="true">1.15741e-05</rate>
                         </phase_transition_rates>
                         <parameters>
@@ -390,7 +390,7 @@
 
     <initial_conditions>
         <cell_positions type="csv" enabled="true">
-            <folder>./config</folder>
+            <folder>./data</folder>
             <filename>cells.csv</filename>
         </cell_positions>
     </initial_conditions>

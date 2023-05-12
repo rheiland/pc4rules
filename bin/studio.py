@@ -208,9 +208,8 @@ class PhysiCellXMLCreator(QWidget):
             print("studio.py: ---- TRUE nanohub_flag: updating config_tab folder")
             self.config_tab.folder.setText('tmpdir')
             self.config_tab.folder.setEnabled(False)
-            self.config_tab.csv_folder.setText('')
+            # self.config_tab.csv_folder.setText('')
             self.config_tab.csv_folder.setEnabled(False)
-            self.config_tab.folder.setText('tmpdir')
         else:
             print("studio.py: ---- FALSE nanohub_flag: NOT updating config_tab folder")
 
@@ -325,7 +324,10 @@ class PhysiCellXMLCreator(QWidget):
             # self.run_tab.config_xml_name.setText(current_xml_file)
             # self.run_tab.exec_name.setText(exec_file)
             # self.run_tab.exec_name.setText(str(Path(exec_file)))
-            self.run_tab.exec_name.setText(os.path.join(self.homedir, exec_file))
+            if not self.nanohub_flag:
+                self.run_tab.exec_name.setText(os.path.join(self.homedir, exec_file))
+            else:
+                self.run_tab.exec_name.setText(os.path.join(self.homedir, "bin", exec_file))
 
             self.run_tab.config_xml_name.setText(self.current_xml_file)
             # self.current_dir = os.getcwd()
