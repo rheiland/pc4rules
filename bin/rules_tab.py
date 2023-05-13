@@ -140,6 +140,7 @@ class Rules(QWidget):
 
         # self.nanohub_flag = nanohub_flag
         self.nanohub_flag = False
+        self.absolute_data_dir = None  # set by studio.py, used by nanoHUB
         self.homedir = '.'  # reset in studio.py
 
         self.microenv_tab = microenv_tab
@@ -1556,7 +1557,12 @@ class Rules(QWidget):
             #     self.fill_rules(full_path_rules_name)
             # else:
             #     self.fill_rules(full_rules_fname)
-            self.fill_rules(full_rules_fname)
+
+            if self.nanohub_flag:  # sigh
+                full_rules_fname = os.path.join(self.absolute_data_dir, file_name)
+                self.fill_rules(full_rules_fname)
+            else:
+                self.fill_rules(full_rules_fname)
             # self.fill_rules(folder_name, file_name)
 
             # if os.path.isfile(full_rules_fname):

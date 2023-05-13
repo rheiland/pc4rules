@@ -132,6 +132,22 @@ class PhysiCellXMLCreator(QWidget):
             if "home/nanohub" in os.environ['HOME']:
                 self.nanohub_flag = True
 
+        if self.nanohub_flag:
+            binDirectory = os.path.dirname(os.path.abspath(__file__))
+            dataDirectory = os.path.join(binDirectory,'..','data')
+            print("-------- dataDirectory (relative) =",dataDirectory)
+            self.absolute_data_dir = os.path.abspath(dataDirectory)
+            print("-------- absolute_data_dir =",self.absolute_data_dir)
+
+            # NOTE: if your C++ needs to also have an absolute path to data dir, do so via an env var
+            # os.environ['KIDNEY_DATA_PATH'] = self.absolute_data_dir
+
+            # docDirectory = os.path.join(binDirectory,'..','doc')
+            # self.absolute_doc_dir = os.path.abspath(docDirectory)
+            # print("-------- absolute_doc_dir =",self.absolute_doc_dir)
+            # read_file = os.path.join(self.absolute_data_dir, model_name + ".xml")
+
+
         self.p = None # Necessary to download files!
 
         # Menus
@@ -295,6 +311,8 @@ class PhysiCellXMLCreator(QWidget):
             self.tabWidget.addTab(self.rules_tab,"Rules")
             self.rules_tab.xml_root = self.xml_root
             self.celldef_tab.rules_tab = self.rules_tab
+            if self.nanohub_flag:
+                self.rules_tab.absolute_data_dir = self.absolute_data_dir
             self.rules_tab.fill_gui()
 
 
