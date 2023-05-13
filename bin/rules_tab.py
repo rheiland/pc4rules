@@ -1533,7 +1533,15 @@ class Rules(QWidget):
 
             self.rules_file.setText(file_name)
             cwd = os.getcwd()
-            print("fill_rules():  os.getcwd()=",cwd)
+            if self.nanohub_flag:
+                try:
+                    # toolpath = os.environ['TOOLPATH']
+                    cwd = os.environ['TOOLPATH']
+                    # print("rules_tab.py: toolpath (cwd)= ",cwd)
+                    # cwd = os.path.join(toolpath, "data")
+                except:
+                    print("studio.py: exception doing os.environ('TOOLPATH')")
+            print("fill_rules():  cwd=",cwd)
             full_rules_fname = os.path.join(cwd, folder_name, file_name)
 
             if uep.attrib['enabled'].lower() == 'true':
