@@ -133,13 +133,12 @@ class MyQLineEdit(QLineEdit):
 
 class Rules(QWidget):
     # def __init__(self, nanohub_flag):
-    def __init__(self, microenv_tab, celldef_tab):
+    def __init__(self, nanohub_flag, microenv_tab, celldef_tab):
         super().__init__()
 
         self.rules_plot = None
 
-        # self.nanohub_flag = nanohub_flag
-        self.nanohub_flag = False
+        self.nanohub_flag = nanohub_flag
         self.absolute_data_dir = None  # set by studio.py, used by nanoHUB
         self.homedir = '.'  # reset in studio.py
 
