@@ -399,6 +399,8 @@ class PhysiCellXMLCreator(QWidget):
 
             self.run_tab.config_file = self.current_xml_file
             self.run_tab.config_xml_name.setText(self.current_xml_file)
+            if self.nanohub_flag:
+                self.run_tab.config_xml_name.setText("config.xml")  # because it's copied to /tmpdir in run_tab
 
             self.tabWidget.addTab(self.run_tab,"Run")
 
