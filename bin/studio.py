@@ -336,6 +336,7 @@ class PhysiCellXMLCreator(QWidget):
             self.run_tab = RunModel(self.nanohub_flag, self.tabWidget, self.celldef_tab, self.rules_flag, self.download_menu)
 
             self.homedir = os.getcwd()
+            self.run_tab.exec_name.setText(os.path.join(self.homedir, exec_file))
             print("studio.py: self.homedir = ",self.homedir)
             if self.nanohub_flag:
                 try:
@@ -344,18 +345,12 @@ class PhysiCellXMLCreator(QWidget):
                     print("studio.py: toolpath= ",toolpath)
                     # full_path = os.path.join(toolpath, "data")
                     self.homedir = os.path.join(toolpath, "data")
+                    self.run_tab.exec_name.setText(os.path.join(toolpath, "bin", exec_file))
                 except:
                     print("studio.py: exception doing os.environ('TOOLPATH')")
 
             self.run_tab.homedir = self.homedir
 
-            # self.run_tab.config_xml_name.setText(current_xml_file)
-            # self.run_tab.exec_name.setText(exec_file)
-            # self.run_tab.exec_name.setText(str(Path(exec_file)))
-            if not self.nanohub_flag:
-                self.run_tab.exec_name.setText(os.path.join(self.homedir, exec_file))
-            else:
-                self.run_tab.exec_name.setText(os.path.join(self.homedir, "bin", exec_file))
 
             self.run_tab.config_xml_name.setText(self.current_xml_file)
             # self.current_dir = os.getcwd()
