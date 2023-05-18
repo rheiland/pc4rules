@@ -19,6 +19,7 @@ import sys
 import argparse
 import logging
 import shutil # for possible copy of file
+import time
 from pathlib import Path
 import xml.etree.ElementTree as ET  # https://docs.python.org/2/library/xml.etree.elementtree.html
 # from xml.dom import minidom   # possibly explore later if we want to access/update *everything* in the DOM
@@ -173,7 +174,10 @@ class PhysiCellXMLCreator(QWidget):
         logging.debug(f'self.studio_root_dir = {self.studio_root_dir}')
 
         # assume running from a PhysiCell root dir, but change if not
-        self.config_dir = os.path.realpath(os.path.join('.', 'config'))
+        if self.nanohub_flag:
+            self.config_dir = os.path.realpath(os.path.join('.', 'data'))
+        else:
+            self.config_dir = os.path.realpath(os.path.join('.', 'config'))
 
         if self.current_dir == self.studio_root_dir:  # are we running from studio root dir?
             # self.config_dir = os.path.realpath(os.path.join(os.path.dirname(__file__), '..', 'data'))
@@ -185,22 +189,43 @@ class PhysiCellXMLCreator(QWidget):
         # print("studio.py: self.studio_config_dir = ",self.studio_config_dir)
         # sys.exit(1)
 
-        if config_file:
-            self.current_xml_file = os.path.join(self.current_dir, config_file)
-            print("got config_file=",config_file)
-            # sys.exit()
+        # if config_file:
+        #     self.current_xml_file = os.path.join(self.current_dir, config_file)
+        #     print("got config_file=",config_file)
+        #     # sys.exit()
+        # else:
+        #     # model_name = "interactions"  # for testing latest xml
+        #     model_name = "rules"
+        #     if self.nanohub_flag:
+        #         model_name = "rules"
+        #     self.current_xml_file = os.path.join(self.studio_config_dir, model_name + ".xml")
+
+
+        # # NOTE! We operate *directly* on a default .xml file, not a copy.
+        # self.setWindowTitle(self.title_prefix + self.current_xml_file)
+        # self.config_file = self.current_xml_file  # to Save
+        # print(f"studio: (default) self.config_file = {self.config_file}")
+
+
+        #----------- from pc4learning -------------------
+        model_name = "rules"
+        read_file = os.path.join(self.absolute_data_dir, model_name + ".xml")
+        # NOTE! We create a *copy* of the .xml sample model and will save to it.
+        copy_file = "copy_" + model_name + ".xml"
+        shutil.copy(read_file, copy_file)
+        # time.sleep(2)
+        if self.nanohub_flag:
+            # self.setWindowTitle(self.title_prefix + "pc4learning")
+            self.setWindowTitle(self.title_prefix + copy_file)
         else:
-            # model_name = "interactions"  # for testing latest xml
-            model_name = "rules"
-            if self.nanohub_flag:
-                model_name = "rules"
-            self.current_xml_file = os.path.join(self.studio_config_dir, model_name + ".xml")
-
-
-        # NOTE! We operate *directly* on a default .xml file, not a copy.
-        self.setWindowTitle(self.title_prefix + self.current_xml_file)
-        self.config_file = self.current_xml_file  # to Save
-        print(f"studio: (default) self.config_file = {self.config_file}")
+            self.setWindowTitle(self.title_prefix + copy_file)
+            # self.setWindowTitle(self.title_prefix + "pc4learning")
+        # self.add_new_model(copy_file, True)
+        # self.config_file = "config_samples/" + name + ".xml"
+        self.config_file = copy_file  # to Save
+        self.current_xml_file = self.config_file
+        print("studio.py:  self.config_file= ",self.config_file)
+        #------------------------------
 
         self.tree = ET.parse(self.config_file)
         print(f"studio: (default) self.tree = {self.tree}")
@@ -222,8 +247,9 @@ class PhysiCellXMLCreator(QWidget):
 
         if self.nanohub_flag:  # rwh - test if works on nanoHUB
             print("studio.py: ---- TRUE nanohub_flag: updating config_tab folder")
-            self.config_tab.folder.setText('tmpdir')
-            self.config_tab.folder.setEnabled(False)
+            # self.config_tab.folder.setText('tmpdir')
+            self.config_tab.folder.setText('.')
+            # self.config_tab.folder.setEnabled(False)
             # self.config_tab.csv_folder.setText('')
             self.config_tab.csv_folder.setEnabled(False)
         else:
@@ -383,8 +409,9 @@ class PhysiCellXMLCreator(QWidget):
             self.vis_tab.update_output_dir(self.config_tab.folder.text())
             self.config_tab.vis_tab = self.vis_tab
             if self.nanohub_flag:  # rwh - test if works on nanoHUB
-                self.vis_tab.output_folder.setText('tmpdir')
-                self.vis_tab.output_folder.setEnabled(False)
+                # self.vis_tab.output_folder.setText('tmpdir')
+                self.vis_tab.output_folder.setText('.')
+                # self.vis_tab.output_folder.setEnabled(False)
                 self.vis_tab.output_folder_button.setEnabled(False)
 
             self.vis_tab.config_tab = self.config_tab
