@@ -94,7 +94,7 @@ class RunModel(QWidget):
         self.exec_name = QLineEdit()
         if self.nanohub_flag:
             self.exec_name.setText('myproj')
-            self.exec_name.setEnabled(False)
+            # self.exec_name.setEnabled(False)
         else:
             # self.exec_name.setText('../myproj')
             self.exec_name.setText('template')

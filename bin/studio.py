@@ -345,7 +345,9 @@ class PhysiCellXMLCreator(QWidget):
                     print("studio.py: toolpath= ",toolpath)
                     # full_path = os.path.join(toolpath, "data")
                     self.homedir = os.path.join(toolpath, "data")
-                    self.run_tab.exec_name.setText(os.path.join(toolpath, "bin", exec_file))
+                    print("studio.py: nanohub exec= ",toolpath)
+                    nanohub_exec = os.path.join(toolpath, "bin", exec_file)
+                    self.run_tab.exec_name.setText(nanohub_exec)
                 except:
                     print("studio.py: exception doing os.environ('TOOLPATH')")
 
