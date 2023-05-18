@@ -340,14 +340,20 @@ class PhysiCellXMLCreator(QWidget):
             print("studio.py: self.homedir = ",self.homedir)
             if self.nanohub_flag:
                 try:
+                    print("\n\n------------------studio.py: doing nanohub stuff")
                     # cachedir = os.environ['CACHEDIR']
                     toolpath = os.environ['TOOLPATH']
                     print("studio.py: toolpath= ",toolpath)
                     # full_path = os.path.join(toolpath, "data")
-                    self.homedir = os.path.join(toolpath, "data")
+                    self.homedir = os.path.join(toolpath, "data")   # why??
                     nanohub_exec = os.path.join(toolpath, "bin", exec_file)
                     print("studio.py: nanohub exec= ",nanohub_exec)
                     self.run_tab.exec_name.setText(nanohub_exec)
+
+                    self.config_tab.csv_folder.setText(self.absolute_data_dir)
+                    if self.rules_flag:
+                        self.rules_tab.rules_folder.setText(self.absolute_data_dir)
+                    print("------------------")
                 except:
                     print("studio.py: exception doing os.environ('TOOLPATH')")
 
