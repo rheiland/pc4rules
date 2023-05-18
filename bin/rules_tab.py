@@ -1593,8 +1593,9 @@ class Rules(QWidget):
     # Read values from the GUI widgets and generate/write a new XML
     # Also, save the Rules into their specified .csv file.
     def fill_xml(self):
-
+        print("------- rules_tab:  fill_xml(): before save_rules_cb()")
         self.save_rules_cb()   # NB! update/save the rules .csv file also
+        print("------- rules_tab:  fill_xml(): after save_rules_cb()")
 
         indent8 = '\n        '
         indent10 = '\n          '
