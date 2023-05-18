@@ -186,6 +186,11 @@ class RunModel(QWidget):
                         shutil.move('tmpdir', tname)
                     os.makedirs('tmpdir')
                     tdir = os.path.abspath('tmpdir')
+
+                    # write the default config file to tmpdir
+                    # new_config_file = "tmpdir/config.xml"  # use Path; work on Windows?
+                    tdir = os.path.abspath('tmpdir')
+                    new_config_file = Path(tdir,"config.xml")
                 else:
                     self.output_dir = self.config_tab.folder.text()
                     os.system('rm -rf ' + self.output_dir)
@@ -209,16 +214,18 @@ class RunModel(QWidget):
                 # logging.debug(f'run_tab.py: ----> writing modified model to {self.config_file}')
                 # print("run_tab.py: ----> new_config_file = ",new_config_file)
                 # print("run_tab.py: ----> self.config_file = ",self.config_file)
-                self.tree.write(self.config_file)
-                # print("run_tab.py: ----> here 5")
-                pretty_print(self.config_file, self.config_file)
-                # self.tree.write(new_config_file)  # saves modified XML to <output_dir>/config.xml 
-                # sys.exit(1)
-
-                # Operate from tmpdir. XML: <folder>,</folder>; temporary output goes here.  May be copied to cache later.
                 if self.nanohub_flag:
+                    self.tree.write(new_config_file)  # saves modified XML to tmpdir/config.xml 
+                    # Operate from tmpdir. XML: <folder>,</folder>; temporary output goes here.  May be copied to cache later.
                     tdir = os.path.abspath('tmpdir')
                     os.chdir(tdir)   # run exec from here on nanoHUB
+                else:
+                    self.tree.write(self.config_file)
+                    # print("run_tab.py: ----> here 5")
+                    pretty_print(self.config_file, self.config_file)
+                    # self.tree.write(new_config_file)  # saves modified XML to <output_dir>/config.xml 
+                    # sys.exit(1)
+
                 # sub.update(tdir)
                 # subprocess.Popen(["../bin/myproj", "config.xml"])
 
