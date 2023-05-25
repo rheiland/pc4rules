@@ -21,6 +21,7 @@ import logging
 import shutil # for possible copy of file
 import time
 import zipfile
+import glob
 from pathlib import Path
 import xml.etree.ElementTree as ET  # https://docs.python.org/2/library/xml.etree.elementtree.html
 # from xml.dom import minidom   # possibly explore later if we want to access/update *everything* in the DOM
