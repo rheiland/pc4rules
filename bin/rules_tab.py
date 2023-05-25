@@ -40,7 +40,16 @@ class RulesPlotWindow(QWidget):
         self.ax0 = self.figure.add_subplot(111, adjustable='box')
         self.layout.addWidget(self.canvas)
 
+        self.close_button = QPushButton("Close")
+        self.close_button.setStyleSheet("background-color: lightgreen;")
+        # self.close_button.setFixedWidth(150)
+        self.close_button.clicked.connect(self.close_plot_cb)
+        self.layout.addWidget(self.close_button)
+
         self.setLayout(self.layout)
+
+    def close_plot_cb(self):
+        self.close()
 #---------------------
 
 class ExtendedCombo( QComboBox ):
@@ -1125,13 +1134,16 @@ class Rules(QWidget):
             # base_val = float(self.rule_base_val.text())
             min_val = float(self.rule_base_val.text())
         else:
-            min_val = 0.1
-        max_val = float(self.rule_max_val.text())
+            # min_val = 0.1
+            min_val = 0.0
+        # max_val = float(self.rule_max_val.text())
         # X = np.linspace(base_val,max_val, 101) 
-        X = np.linspace(min_val,max_val, 101) 
+        # X = np.linspace(min_val,max_val, 101) 
 
         half_max = float(self.rule_half_max.text())
         hill_power = int(self.rule_hill_power.text())
+
+        X = np.linspace(min_val,2.0 * half_max, 101)   # guess max = 2 * half-max
 
         Y = self.hill(X, half_max=half_max, hill_power=hill_power)
         if "decreases" in self.up_down_combobox.currentText():
