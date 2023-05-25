@@ -191,6 +191,7 @@ class RunModel(QWidget):
                     # new_config_file = "tmpdir/config.xml"  # use Path; work on Windows?
                     tdir = os.path.abspath('tmpdir')
                     new_config_file = Path(tdir,"config.xml")
+                    self.output_dir = '.'
                 else:
                     self.output_dir = self.config_tab.folder.text()
                     os.system('rm -rf ' + self.output_dir)
