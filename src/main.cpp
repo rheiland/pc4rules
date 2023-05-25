@@ -174,9 +174,6 @@ int main( int argc, char* argv[] )
 	}
 	
 	// main loop 
-
-
-	stream_annotated_English_rules( std::cout ); 
 	
 	try 
 	{		

@@ -146,7 +146,7 @@ class FilterUI2DWindow(QWidget):
         # self.layout.setStretch(0,1000)
 
         self.setLayout(self.vbox)
-        # self.resize(250, 250)
+        self.resize(250, 210)
 
 
     #--------
