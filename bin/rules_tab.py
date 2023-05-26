@@ -150,6 +150,7 @@ class Rules(QWidget):
 
         self.nanohub_flag = nanohub_flag
         self.homedir = '.'  # reset in studio.py
+        self.absolute_data_dir = None   # updated in studio.py
 
         self.microenv_tab = microenv_tab
         self.celldef_tab = celldef_tab
